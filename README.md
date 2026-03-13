@@ -51,7 +51,17 @@ By combining individual employment data with innovation metrics and national pol
 
 ---
 
-## 5. Target Audience
+## 5. Interactive Dashboard
+
+As part of the project's evolution, we will be developing an **Interactive Visualization Dashboard** using the **Svelte** framework. This dashboard will allow users to:
+- Dynamically explore migration trends across different regions.
+- Filter data by education levels, industry, and citizenship status.
+- Visualize the "Innovation Dividend" and "Brain Waste" through high-fidelity, reactive components.
+- Compare US and EU economic impacts side-by-side with real-time feedback.
+
+---
+
+## 6. Target Audience
 
 | Audience | Purpose |
 |----------|---------|
