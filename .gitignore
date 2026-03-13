@@ -1,0 +1,17 @@
+# OS X
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Large data files
+*.csv
+*.csv.gz
+*.xlsx
+*.pdf
+# data/raw/
+# data/processed/
