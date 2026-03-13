@@ -24,21 +24,21 @@ By combining individual employment data with innovation metrics and national pol
 
 ## 3. Data Strategy (Primary Resources)
 
-| Source | Dataset Used | Key Metric |
-|--------|-------------|------------|
-| **IPUMS USA** | ACS Census Microdata | Income, Job Titles, and Education (3M+ records) |
-| **Eurostat** | Migrant Integration LFS | Employment and Over-qualification across the EU |
-| **OECD DIOC** | Immigrants in OECD | STEM field involvement and professional skills |
-| **MIPEX** | Integration Policy Index | Scores for national laws and integration paths |
-| **BJS (US)** | National Prisoner Stats | Verified incarceration rates by citizenship status |
-| **Fortune 500** | Founder Origins | Impact of immigrants on the world's largest companies |
+| Source | Dataset Used | Key Metric | Row Count |
+|--------|-------------|------------|-----------|
+| **IPUMS USA** | ACS Census Microdata | Income, Job Titles, and Education | 85,696,682 |
+| **Eurostat** | Migrant Integration LFS | Employment and Over-qualification | 38,651 |
+| **OECD DIOC** | Immigrants in OECD | STEM field involvement and professional skills | 1,321 |
+| **MIPEX** | Integration Policy Index | Scores for national laws and integration paths | N/A (Excel) |
+| **BJS (US)** | National Prisoner Stats | Verified incarceration rates by citizenship status | 2,431 |
+| **Fortune 500** | Founder Origins | Impact of immigrants on large companies | ~35 (Total) |
 
 ---
 
 ## 4. Technical Details
 
 ### Data Volume
-- **US:** Scalable from 3.5 million records (ACS microdata)
+- **US:** 85.7 million records (ACS microdata)
 - **EU:** 40,000+ entries (Eurostat LFS)
 
 ### Software Stack
