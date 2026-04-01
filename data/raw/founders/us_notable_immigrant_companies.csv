@@ -1,0 +1,14 @@
+company,rank_2024,founder,founder_origin_country,industry,founded_year,annual_revenue_usd_billion,employees_thousands,immigrant_generation,source
+Apple,3,Steve Jobs (biological father Paul Jobs adopted),Syria,Technology,1976,383.3,161,1st gen (parent),AIC 2024
+Google,,,Sergey Brin,Russia,Technology,1998,307.4,182,1st gen,AIC 2024
+Yahoo,,Jerry Yang,Taiwan,Technology,1995,,,"1st gen",AIC 2024
+eBay,,Pierre Omidyar,France/Iran,E-Commerce,1995,10.1,11,1st gen,AIC 2024
+LinkedIn,,Reid Hoffman,,"Technology,Social",2002,,,2nd gen,AIC 2024
+Tesla / SpaceX,,Elon Musk,South Africa,Automotive / Aerospace,2003,97.7,140,1st gen,AIC 2024
+Zoom,,Eric Yuan,China,Technology,2011,4.4,7,1st gen,AIC 2024
+Stripe,,Patrick & John Collison,Ireland,Fintech,2010,,,1st gen,AIC 2024
+Databricks,,Ali Ghodsi + team,Iran / various,Technology,2013,,,1st gen,NFAP 2022
+Duolingo,,Luis von Ahn,Guatemala,EdTech,2011,0.53,0.7,1st gen,NFAP 2022
+Pfizer,,,Charles Pfizer,Germany,Pharmaceuticals,1849,58.5,83,1st gen,AIC 2024
+AT&T,,,Alexander Graham Bell,UK/Scotland,Telecommunications,1876,122.4,150,1st gen,AIC 2024
+Procter & Gamble,,,William Procter / James Gamble,UK / Ireland,Consumer Goods,1837,84.0,107,1st gen,AIC 2024

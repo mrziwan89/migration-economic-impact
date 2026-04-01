@@ -9,9 +9,6 @@ venv/
 .env
 
 # Large data files
-*.csv
-*.csv.gz
-*.xlsx
-*.pdf
-# data/raw/
-# data/processed/
+data/raw/ipums_acs/usa_00001.csv
+data/raw/ipums_acs/usa_00001.csv.gz
+data/raw/ipums_acs/usa_2014_plus.csv

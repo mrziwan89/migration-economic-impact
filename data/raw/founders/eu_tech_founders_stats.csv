@@ -1,0 +1,9 @@
+country_or_region, year, metric                              , value, unit            , source                                          , notes
+EU (broad)       , 2022, immigrant_self_employed_share       ,  12.0, percent         , OECD Missing Entrepreneurs 2023                 , Share of self-employed born outside their country; nearly doubled over past decade in EU
+Germany          , 2023, unicorns_with_immigrant_founder     ,  60.0, percent         , OECD Missing Entrepreneurs 2023                 , % of German unicorn startups with at least one immigrant founder
+Germany          , 2025, unicorn_founders_born_abroad        ,  23.0, percent         , Migrant Founders Monitor 2025 (Hamburg)         , 23% of German unicorn founders were born abroad; 91% hold university degree; 56% in STEM
+UK               , 2023, fastest_growing_with_foreign_founder,  39.0, percent         , Entrepreneurs Network Job Creators 2023         , 39% of fastest-growing UK businesses have foreign nationals on founding teams; 28 countries of origin
+UK               , 2023, active_unicorns_foreign_born_founder,  16.0, percent         , Beauhurst 2023                                  , 16% of active UK unicorns had foreign-born founders (down from 40% in 2022 post-Brexit)
+Europe (broad)   , 2023, new_tech_founders_foreign           ,  33.0, percent         , Startup Heatmap Survey 2023                     , A third of new European tech founders are foreign-born
+Europe (broad)   , 2024, unicorns_immigrant_or_child         ,  62.0, percent         , Defiance Capital Unicorn Founder DNA Report 2024, "62% of US+UK unicorns (2013-2023) had first or second-generation immigrant founders"
+Europe (broad)   , 2023, new_founder_nationalities_vs_unicorn, 300.0, percent_increase, Antler Europe New Tech Founders 2023            , "New tech founders represent 3x more nationalities than existing unicorn founders; 845 unicorn founders analyzed"
