@@ -85,6 +85,37 @@
       margin: 16px 0;
     }
 
+    .year-slider-panel {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 0 4px;
+    }
+
+    .year-slider-panel button {
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--text);
+      border-radius: 8px;
+      width: 38px;
+      height: 38px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .year-slider-panel input[type="range"] {
+      flex: 1;
+      min-width: 150px;
+      accent-color: var(--accent);
+    }
+
+    .year-slider-panel span {
+      min-width: 48px;
+      text-align: center;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
     label {
       font-size: 13px;
       color: var(--muted);
@@ -107,6 +138,10 @@
     select:focus {
       outline: 2px solid rgba(17, 100, 102, 0.25);
       border-color: var(--accent);
+    }
+
+    select[multiple] {
+      min-height: 140px;
     }
 
     .grid {
@@ -216,9 +251,6 @@
     <label>Topic
       <select id="topic"></select>
     </label>
-    <label>Period
-      <select id="period"></select>
-    </label>
     <label id="sexControl" class="hidden">Sex
       <select id="sex"></select>
     </label>
@@ -226,7 +258,7 @@
       <select id="age"></select>
     </label>
     <label><span id="placeLabel">Selected state</span>
-      <select id="place"></select>
+      <select id="place" multiple size="5"></select>
     </label>
   </div>
 
@@ -235,6 +267,11 @@
   <div class="grid">
     <div class="card">
       <div id="map"></div>
+      <div class="year-slider-panel">
+        <button type="button" id="playButton" aria-label="Play year animation">▶</button>
+        <input id="year" type="range" min="2008" max="2024" step="1" />
+        <span id="yearValue">2024</span>
+      </div>
       <div class="note" id="mapNote"></div>
     </div>
     <div class="card">
@@ -248,6 +285,10 @@
     <div class="card full">
       <div id="breakdown"></div>
       <div class="note" id="breakdownNote"></div>
+    </div>
+    <div class="card full">
+      <div id="radar"></div>
+      <div class="note" id="radarNote"></div>
     </div>
   </div>
 </div>
@@ -478,11 +519,14 @@ const state = {ready: false};
 
 const regionSelect = document.getElementById("region");
 const topicSelect = document.getElementById("topic");
-const periodSelect = document.getElementById("period");
 const placeSelect = document.getElementById("place");
 const sexSelect = document.getElementById("sex");
 const ageSelect = document.getElementById("age");
+const yearSlider = document.getElementById("year");
+const playButton = document.getElementById("playButton");
+const yearValue = document.getElementById("yearValue");
 const statusBox = document.getElementById("status");
+let yearAnimation = null;
 
 function parseCsv(text) {
   const rows = [];
@@ -594,16 +638,30 @@ function decorateUsaRow(row) {
 }
 
 function setOptions(select, options, preferredValue) {
-  const current = preferredValue ?? select.value;
+  const current = preferredValue != null
+    ? preferredValue
+    : select.multiple
+      ? Array.from(select.selectedOptions).map(option => option.value)
+      : select.value;
+  const preferred = Array.isArray(current) ? current : [current];
   select.innerHTML = "";
+
   options.forEach(option => {
     const element = document.createElement("option");
     element.value = option.value;
     element.textContent = option.label;
+    if (select.multiple) {
+      element.selected = preferred.includes(option.value);
+    }
     select.appendChild(element);
   });
-  if (options.some(option => option.value === current)) {
-    select.value = current;
+
+  if (select.multiple) {
+    if (!select.selectedOptions.length && options.length) {
+      select.options[0].selected = true;
+    }
+  } else if (options.some(option => option.value === preferred[0])) {
+    select.value = preferred[0];
   } else if (options.length) {
     select.value = options[0].value;
   }
@@ -624,14 +682,11 @@ function configureControls(resetRegion) {
 
   setOptions(topicSelect, topicOptions(region), resetRegion ? defaults.topic : topicSelect.value);
   const cfg = currentTopicConfig();
-  const periods = cfg.periods || PERIODS[region];
   const showEurostatFilters = region === "eurostat" && cfg.usesDemographicFilters;
 
   document.getElementById("sexControl").classList.toggle("hidden", !showEurostatFilters);
   document.getElementById("ageControl").classList.toggle("hidden", !showEurostatFilters);
   document.getElementById("placeLabel").textContent = region === "usa" ? "Selected state" : "Selected country";
-
-  setOptions(periodSelect, periods.map(value => ({value, label: value})), resetRegion ? defaults.period : periodSelect.value);
 
   if (showEurostatFilters) {
     const sexOptions = prioritize(uniqueSorted(DATA.eurostat.countryYear.map(row => row.sex)), ["Total", "Females", "Males"]);
@@ -640,7 +695,107 @@ function configureControls(resetRegion) {
     setOptions(ageSelect, ageOptions.map(value => ({value, label: value})), resetRegion ? defaults.age : ageSelect.value);
   }
 
-  setOptions(placeSelect, placeOptions(region), resetRegion ? defaults.place : placeSelect.value);
+  setOptions(placeSelect, placeOptions(region), resetRegion ? [defaults.place] : getSelectedPlaces());
+}
+
+function getSelectedPlaces() {
+  return Array.from(placeSelect.selectedOptions).map(option => option.value).slice(0, 5);
+}
+
+function getSelectedPlaceLabels() {
+  return Array.from(placeSelect.selectedOptions).map(option => option.label).slice(0, 5);
+}
+
+function ensureMaxSelectedPlaces() {
+  const selected = Array.from(placeSelect.selectedOptions);
+  if (selected.length <= 5) {
+    return;
+  }
+  selected.slice(5).forEach(option => {
+    option.selected = false;
+  });
+  statusBox.classList.remove("hidden");
+  statusBox.textContent = "Select up to 5 states or countries.";
+  setTimeout(() => {
+    if (!statusBox.classList.contains("error")) {
+      statusBox.classList.add("hidden");
+    }
+  }, 2500);
+}
+
+function getSelectedYear() {
+  const year = Number(yearSlider.value);
+  return Number.isFinite(year) ? year : null;
+}
+
+function availableYearsForTopic(region, cfg) {
+  const rows = region === "usa"
+    ? DATA.usa[cfg.trendKey]
+    : cfg.source === "outcomes"
+      ? DATA.eurostat.outcomeYear
+      : cfg.kind === "gap"
+        ? DATA.eurostat.gapYear
+        : DATA.eurostat.countryYear;
+
+  const years = Array.from(new Set(rows.map(row => row.YEAR).filter(value => value != null))).map(Number);
+  years.sort((a, b) => a - b);
+  return years;
+}
+
+function updateYearSlider(cfg) {
+  const years = availableYearsForTopic(regionSelect.value, cfg);
+  if (!years.length) {
+    yearSlider.disabled = true;
+    yearSlider.min = 0;
+    yearSlider.max = 0;
+    yearSlider.value = 0;
+    yearValue.textContent = "—";
+    return;
+  }
+
+  yearSlider.disabled = false;
+  yearSlider.min = years[0];
+  yearSlider.max = years[years.length - 1];
+  yearSlider.step = 1;
+
+  const currentYear = Number(yearSlider.value);
+  if (!years.includes(currentYear)) {
+    yearSlider.value = years[years.length - 1];
+  }
+
+  yearValue.textContent = yearSlider.value;
+}
+
+function stopYearAnimation() {
+  if (!yearAnimation) {
+    return;
+  }
+  clearInterval(yearAnimation);
+  yearAnimation = null;
+  playButton.textContent = "▶";
+}
+
+function startYearAnimation() {
+  if (yearAnimation) {
+    return;
+  }
+  playButton.textContent = "❚❚";
+  yearAnimation = setInterval(() => {
+    const min = Number(yearSlider.min);
+    const max = Number(yearSlider.max);
+    const next = Number(yearSlider.value) + 1;
+    yearSlider.value = next > max ? min : next;
+    yearValue.textContent = yearSlider.value;
+    render();
+  }, 800);
+}
+
+function toggleYearAnimation() {
+  if (yearAnimation) {
+    stopYearAnimation();
+  } else {
+    startYearAnimation();
+  }
 }
 
 function prioritize(values, preferred) {
@@ -652,9 +807,11 @@ function prioritize(values, preferred) {
 }
 
 function placeOptions(region) {
+  const selectedYear = getSelectedYear();
+
   if (region === "usa") {
     const cfg = USA_TOPICS[topicSelect.value];
-    const rows = DATA.usa[cfg.mapKey].filter(row => row.period === periodSelect.value && row.state);
+    const rows = DATA.usa[cfg.trendKey].filter(row => row.YEAR === selectedYear && row.state);
     const byState = new Map(rows.map(row => [row.state, row.state_name || row.state]));
     return Array.from(byState.entries())
       .sort((a, b) => a[1].localeCompare(b[1]))
@@ -663,8 +820,11 @@ function placeOptions(region) {
 
   const cfg = EUROSTAT_TOPICS[topicSelect.value];
   if (cfg.source === "outcomes") {
+    const sourceRows = selectedYear
+      ? eurostatOutcomeRowsForSelection(cfg, true, selectedYear)
+      : eurostatOutcomeRowsForSelection(cfg, true);
     const byCountry = new Map();
-    eurostatOutcomeRowsForSelection(cfg, true).forEach(row => {
+    sourceRows.forEach(row => {
       if (!row.country_key || byCountry.has(row.country_key)) {
         return;
       }
@@ -682,13 +842,9 @@ function placeOptions(region) {
     });
   }
 
-  const rows = eurostatRowsForMap(cfg)
-    .concat(DATA.eurostat.countryPeriod.filter(row =>
-      row.period === periodSelect.value &&
-      row.sex === sexSelect.value &&
-      row.age === ageSelect.value &&
-      row.is_aggregate === 1
-    ));
+  const rows = selectedYear
+    ? eurostatRowsForMap(cfg, selectedYear)
+    : eurostatRowsForMap(cfg);
   const byCountry = new Map();
   rows.forEach(row => {
     if (!row.country_key || byCountry.has(row.country_key)) {
@@ -710,6 +866,63 @@ function placeOptions(region) {
 
 function currentTopicConfig() {
   return regionSelect.value === "usa" ? USA_TOPICS[topicSelect.value] : EUROSTAT_TOPICS[topicSelect.value];
+}
+
+function usaYearRows(cfg, year) {
+  const rows = DATA.usa[cfg.trendKey].filter(row => row.YEAR === year && row.state);
+  if (cfg.isGap) {
+    const grouped = new Map();
+    rows.forEach(row => {
+      if (!grouped.has(row.state)) {
+        grouped.set(row.state, {state: row.state, state_name: row.state_name, foreign: null, us: null});
+      }
+      const entry = grouped.get(row.state);
+      if (row.nativity_group === "Foreign-born") {
+        entry.foreign = row[cfg.trendValue];
+      } else if (row.nativity_group === "US-born") {
+        entry.us = row[cfg.trendValue];
+      }
+    });
+    return Array.from(grouped.values()).map(row => ({
+      state: row.state,
+      state_name: row.state_name,
+      value: row.foreign != null && row.us != null ? row.foreign - row.us : null,
+      foreign: row.foreign,
+      us: row.us
+    }));
+  }
+  return rows.map(row => ({
+    state: row.state,
+    state_name: row.state_name,
+    value: row[cfg.trendValue]
+  }));
+}
+
+function eurostatYearRows(cfg, year) {
+  if (cfg.source === "outcomes") {
+    return DATA.eurostat.outcomeYear.filter(row => row.YEAR === year && row.metric_key === cfg.metricKey && row[cfg.value] != null);
+  }
+  if (cfg.kind === "gap") {
+    return DATA.eurostat.gapYear.filter(row => row.YEAR === year && row.sex === sexSelect.value && row.age === ageSelect.value && row.comparison_group === cfg.comparisonGroup && row.iso3);
+  }
+  return DATA.eurostat.countryYear.filter(row => row.YEAR === year && row.sex === sexSelect.value && row.age === ageSelect.value && row.citizen_group === cfg.citizenGroup && row.iso3);
+}
+
+function addYearMarker(layout, year) {
+  const selectedYear = year != null ? year : getSelectedYear();
+  if (selectedYear != null) {
+    layout.shapes = layout.shapes || [];
+    layout.shapes.push({
+      type: "line",
+      x0: selectedYear,
+      x1: selectedYear,
+      y0: 0,
+      y1: 1,
+      xref: "x",
+      yref: "paper",
+      line: {color: "#c44536", width: 1, dash: "dash"}
+    });
+  }
 }
 
 function blankPlot(id, title, message) {
@@ -744,6 +957,59 @@ function mapScale(values, isGap) {
   return {zmin: 0, zmax: Math.max(...clean)};
 }
 
+function getColorScaleArray(name) {
+  const scales = {
+    Blues: ["#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#08519c", "#08306b"],
+    RdBu: ["#67001f", "#b2182b", "#d6604d", "#f4a582", "#fddbc7", "#d1e5f0", "#92c5de", "#4393c3", "#2166ac"],
+    YlOrRd: ["#ffffcc", "#ffeda0", "#fed976", "#feb24c", "#fd8d3c", "#fc4e2a", "#e31a1c", "#bd0026", "#800026"],
+    YlGnBu: ["#ffffcc", "#c7e9b4", "#7fcdbb", "#41b6c4", "#1d91c0", "#225ea8", "#253494", "#081d58"]
+  };
+  return scales[name] || scales.Blues;
+}
+
+function getValueColor(value, scale, colorscale = "Blues") {
+  if (value == null || !Number.isFinite(value)) {
+    return "#d3d3d3";
+  }
+  const stops = getColorScaleArray(colorscale);
+  const span = Math.max(1e-9, scale.zmax - scale.zmin);
+  const normalized = Math.max(0, Math.min(1, (value - scale.zmin) / span));
+  const index = Math.min(stops.length - 1, Math.floor(normalized * (stops.length - 1)));
+  return stops[index];
+}
+
+function getStableScale(cfg, region) {
+  return region === "usa" ? getStableUsaScale(cfg) : getStableEurostatScale(cfg);
+}
+
+function getStableUsaScale(cfg) {
+  const years = Array.from(new Set(DATA.usa[cfg.trendKey].map(row => row.YEAR)));
+  const values = years.flatMap(year => usaYearRows(cfg, year).map(row => row.value));
+  return mapScale(values, cfg.isGap);
+}
+
+function getStableEurostatScale(cfg) {
+  let rows = [];
+  if (cfg.source === "outcomes") {
+    rows = DATA.eurostat.outcomeYear.filter(row => row.metric_key === cfg.metricKey && row[cfg.value] != null);
+  } else if (cfg.kind === "gap") {
+    rows = DATA.eurostat.gapYear.filter(row =>
+      row.sex === sexSelect.value &&
+      row.age === ageSelect.value &&
+      row.comparison_group === cfg.comparisonGroup &&
+      row[cfg.value] != null
+    );
+  } else {
+    rows = DATA.eurostat.countryYear.filter(row =>
+      row.sex === sexSelect.value &&
+      row.age === ageSelect.value &&
+      row.citizen_group === cfg.citizenGroup &&
+      row[cfg.value] != null
+    );
+  }
+  return mapScale(rows.map(row => row[cfg.value]), cfg.kind === "gap" || cfg.isGap);
+}
+
 function aggregateNational(rows, valueCol, groupCol) {
   const byKey = {};
   rows.forEach(row => {
@@ -766,33 +1032,64 @@ function aggregateNational(rows, valueCol, groupCol) {
 }
 
 function renderUsa(cfg) {
-  const period = periodSelect.value;
-  const place = placeSelect.value;
-  const mapRows = DATA.usa[cfg.mapKey].filter(row => row.period === period && row.state);
-  const values = mapRows.map(row => row[cfg.value]);
-  const scale = mapScale(values, cfg.isGap);
+  const selectedYear = getSelectedYear();
+  const selectedPlaces = new Set(getSelectedPlaces());
+  const primaryPlace = Array.from(selectedPlaces)[0] || (placeSelect.options[0] && placeSelect.options[0].value);
+  const mapRows = selectedYear
+    ? usaYearRows(cfg, selectedYear).filter(row => row.state)
+    : DATA.usa[cfg.mapKey].filter(row => row.state);
+  const values = mapRows.map(row => row.value);
+  const scale = getStableScale(cfg, "usa");
+  const selectedRows = selectedPlaces.size
+    ? mapRows.filter(row => selectedPlaces.has(row.state))
+    : [];
 
   if (!mapRows.length) {
     blankPlot("map", cfg.title, "No state data available for this selection.");
   } else {
-    Plotly.newPlot("map", [{
+    const baseTrace = {
       type: "choropleth",
       locationmode: "USA-states",
       locations: mapRows.map(row => row.state),
       z: values,
       text: mapRows.map(row => row.state_name),
-      customdata: mapRows.map(row => [row[cfg.foreign], row[cfg.us]]),
+      customdata: mapRows.map(row => [row.foreign, row.us]),
       colorscale: cfg.isGap ? "RdBu" : "Blues",
       reversescale: cfg.isGap,
       zmin: scale.zmin,
       zmax: scale.zmax,
+      opacity: selectedPlaces.size ? 0.32 : 1,
       marker: {line: {color: "white", width: 0.7}},
       colorbar: {title: cfg.units},
       hovertemplate: cfg.isGap
         ? "<b>%{text}</b><br>Gap: %{z:.1f} " + cfg.units + "<br>Foreign-born: %{customdata[0]:.1f}<br>US-born: %{customdata[1]:.1f}<extra></extra>"
         : "<b>%{text}</b><br>Rate: %{z:.1f}%<extra></extra>"
-    }], {
-      title: `${cfg.title} - ${period}`,
+    };
+    const traces = [baseTrace];
+
+    if (selectedRows.length) {
+      traces.push({
+        type: "choropleth",
+        locationmode: "USA-states",
+        locations: selectedRows.map(row => row.state),
+        z: selectedRows.map(row => row.value),
+        text: selectedRows.map(row => row.state_name),
+        customdata: selectedRows.map(row => [row.foreign, row.us]),
+        colorscale: cfg.isGap ? "RdBu" : "Blues",
+        reversescale: cfg.isGap,
+        zmin: scale.zmin,
+        zmax: scale.zmax,
+        opacity: 1,
+        marker: {line: {color: "white", width: 1}},
+        showscale: false,
+        hovertemplate: cfg.isGap
+          ? "<b>%{text}</b><br>Gap: %{z:.1f} " + cfg.units + "<br>Foreign-born: %{customdata[0]:.1f}<br>US-born: %{customdata[1]:.1f}<extra></extra>"
+          : "<b>%{text}</b><br>Rate: %{z:.1f}%<extra></extra>"
+      });
+    }
+
+    Plotly.newPlot("map", traces, {
+      title: `${cfg.title} - ${selectedYear}`,
       geo: {scope: "usa", projection: {type: "albers usa"}},
       margin: {l: 0, r: 0, t: 45, b: 0},
       paper_bgcolor: "white",
@@ -800,37 +1097,43 @@ function renderUsa(cfg) {
     }, {responsive: true});
   }
 
-  renderUsaRanking(cfg, mapRows);
-  renderUsaTrend(cfg, place);
-  renderUsaBreakdown(cfg, period, place);
-  document.getElementById("mapNote").textContent = cfg.note;
+  renderUsaRanking(cfg, mapRows, selectedYear, selectedPlaces);
+  renderUsaTrend(cfg, selectedPlaces, selectedYear);
+  renderUsaBreakdown(cfg, selectedYear, primaryPlace, selectedYear);
+  document.getElementById("mapNote").textContent = `${cfg.note} ${selectedYear ? `Selected year: ${selectedYear}.` : ""}`;
   document.getElementById("rankingNote").textContent = cfg.isGap
-    ? "Ranking uses the selected period. Positive gaps mean the foreign-born rate is higher than the US-born rate."
-    : "Ranking uses the selected period.";
+    ? `Ranking uses the selected ${selectedYear ? "year" : "period"}. Positive gaps mean the foreign-born rate is higher than the US-born rate.`
+    : `Ranking uses the selected ${selectedYear ? "year" : "period"}.`;
+  renderRadarComparison("usa", cfg, selectedPlaces, selectedYear);
 }
 
-function renderUsaRanking(cfg, rows) {
-  const rankingRows = rows
-    .filter(row => row[cfg.value] != null)
-    .sort((a, b) => b[cfg.value] - a[cfg.value])
-    .slice(0, 10)
-    .reverse();
+function renderUsaRanking(cfg, rows, periodOrYear, selectedPlaces) {
+  const allRows = rows
+    .filter(row => (row[cfg.value] ?? row.value) != null)
+    .sort((a, b) => (b[cfg.value] ?? b.value) - (a[cfg.value] ?? a.value));
+  const topRows = allRows.slice(0, 10);
+  const extraRows = selectedPlaces.size > 0
+    ? allRows.filter(row => selectedPlaces.has(row.state) && !topRows.includes(row)).slice(0, 5)
+    : [];
+  const rankingRows = [...topRows, ...extraRows].reverse();
 
   if (!rankingRows.length) {
     blankPlot("ranking", "State ranking", "No ranking data available.");
     return;
   }
 
+  const opacities = rankingRows.map(row => selectedPlaces.has(row.state) ? 1 : 0.28);
+
   Plotly.newPlot("ranking", [{
     type: "bar",
     orientation: "h",
     y: rankingRows.map(row => row.state),
-    x: rankingRows.map(row => row[cfg.value]),
+    x: rankingRows.map(row => row[cfg.value] ?? row.value),
     text: rankingRows.map(row => row.state_name),
-    marker: {color: "#116466"},
+    marker: {color: "#116466", opacity: opacities},
     hovertemplate: "<b>%{text}</b><br>%{x:.1f} " + cfg.units + "<extra></extra>"
   }], {
-    title: `Highest states - ${cfg.title}`,
+    title: `Highest states - ${cfg.title} - ${periodOrYear}`,
     xaxis: {title: cfg.units, zeroline: true},
     yaxis: {title: ""},
     margin: {l: 60, r: 20, t: 45, b: 50},
@@ -839,7 +1142,7 @@ function renderUsaRanking(cfg, rows) {
   }, {responsive: true});
 }
 
-function renderUsaTrend(cfg, place) {
+function renderUsaTrend(cfg, selectedPlaces, selectedYear) {
   const rows = DATA.usa[cfg.trendKey];
 
   if (!rows.length) {
@@ -847,13 +1150,38 @@ function renderUsaTrend(cfg, place) {
     return;
   }
 
+  const layout = trendLayout(`${cfg.title} over time`, cfg.units);
+  addYearMarker(layout);
+  const placeList = Array.from(selectedPlaces);
+  const stateLineColors = ["#c44536", "#2a6f97", "#8a2be2", "#ff8c00", "#2e8b57"];
+
   if (!cfg.isGap && topicSelect.value === "lang") {
     const national = aggregateNational(rows, cfg.trendValue, null);
-    const stateRows = rows.filter(row => row.state === place).sort((a, b) => a.YEAR - b.YEAR);
-    Plotly.newPlot("trend", [
-      {type: "scatter", mode: "lines+markers", name: "National", x: national.map(row => row.year), y: national.map(row => row.value), line: {color: "#116466"}},
-      {type: "scatter", mode: "lines+markers", name: place, x: stateRows.map(row => row.YEAR), y: stateRows.map(row => row[cfg.trendValue]), line: {color: "#c44536"}}
-    ], trendLayout(`${cfg.title} over time`, "%"), {responsive: true});
+    const traces = [{
+      type: "scatter",
+      mode: "lines+markers",
+      name: "National",
+      x: national.map(row => row.year),
+      y: national.map(row => row.value),
+      line: {color: "#116466"}
+    }];
+
+    placeList.forEach((place, index) => {
+      const stateRows = rows.filter(row => row.state === place).sort((a, b) => a.YEAR - b.YEAR);
+      if (!stateRows.length) {
+        return;
+      }
+      traces.push({
+        type: "scatter",
+        mode: "lines+markers",
+        name: `${STATE_NAMES[place] || place}`,
+        x: stateRows.map(row => row.YEAR),
+        y: stateRows.map(row => row[cfg.trendValue]),
+        line: {color: stateLineColors[index % stateLineColors.length], dash: "dot"}
+      });
+    });
+
+    Plotly.newPlot("trend", traces, layout, {responsive: true});
   } else {
     const national = aggregateNational(rows, cfg.trendValue, "nativity_group");
     const traces = ["Foreign-born", "US-born"].map((group, index) => {
@@ -867,29 +1195,47 @@ function renderUsaTrend(cfg, place) {
         line: {color: index === 0 ? "#116466" : "#6f7f8f"}
       };
     });
-    const stateRows = rows.filter(row => row.state === place).sort((a, b) => a.YEAR - b.YEAR);
-    ["Foreign-born", "US-born"].forEach((group, index) => {
-      const groupRows = stateRows.filter(row => row.nativity_group === group);
-      traces.push({
-        type: "scatter",
-        mode: "lines",
-        name: `${place} ${group}`,
-        x: groupRows.map(row => row.YEAR),
-        y: groupRows.map(row => row[cfg.trendValue]),
-        line: {dash: "dot", color: index === 0 ? "#c44536" : "#9a8c70"}
+
+    placeList.forEach((place, placeIndex) => {
+      const stateRows = rows.filter(row => row.state === place).sort((a, b) => a.YEAR - b.YEAR);
+      ["Foreign-born", "US-born"].forEach((group, index) => {
+        const groupRows = stateRows.filter(row => row.nativity_group === group);
+        if (!groupRows.length) {
+          return;
+        }
+        traces.push({
+          type: "scatter",
+          mode: "lines",
+          name: `${STATE_NAMES[place] || place} ${group}`,
+          x: groupRows.map(row => row.YEAR),
+          y: groupRows.map(row => row[cfg.trendValue]),
+          line: {dash: "dot", color: stateLineColors[(placeIndex * 2 + index) % stateLineColors.length]}
+        });
       });
     });
-    Plotly.newPlot("trend", traces, trendLayout(`${cfg.title} over time`, cfg.units), {responsive: true});
+
+    Plotly.newPlot("trend", traces, layout, {responsive: true});
   }
 
-  document.getElementById("trendNote").textContent = "Solid lines show national trends; dotted lines show the selected state.";
+  document.getElementById("trendNote").textContent = selectedYear
+    ? `Solid lines show national trends; dotted lines show the selected state(s). Highlighted year: ${selectedYear}.`
+    : "Solid lines show national trends; dotted lines show the selected state(s).";
 }
 
-function renderUsaBreakdown(cfg, period, place) {
+function renderUsaBreakdown(cfg, period, place, selectedYear) {
   if (topicSelect.value === "health") {
-    const rows = DATA.usa.healthCitPeriod
-      .filter(row => row.period === period && row.state === place)
-      .sort((a, b) => b.uninsured_rate_pct - a.uninsured_rate_pct);
+    const rows = selectedYear
+      ? []
+      : DATA.usa.healthCitPeriod
+        .filter(row => row.period === period && row.state === place)
+        .sort((a, b) => b.uninsured_rate_pct - a.uninsured_rate_pct);
+
+    if (selectedYear || !rows.length) {
+      blankPlot("breakdown", "Healthcare access by citizenship", "Detailed citizenship breakdown is only available for period-pooled data.");
+      document.getElementById("breakdownNote").textContent = "Healthcare citizenship detail is not available for year-level selection.";
+      return;
+    }
+
     Plotly.newPlot("breakdown", [{
       type: "bar",
       x: rows.map(row => row.citizenship_group),
@@ -908,8 +1254,24 @@ function renderUsaBreakdown(cfg, period, place) {
     return;
   }
 
-  const row = DATA.usa[cfg.mapKey].find(item => item.period === period && item.state === place);
-  if (!row) {
+  let row;
+  if (selectedYear) {
+    const rows = DATA.usa[cfg.trendKey].filter(item => item.YEAR === selectedYear && item.state === place);
+    if (cfg.isGap) {
+      const foreign = rows.find(item => item.nativity_group === "Foreign-born");
+      const us = rows.find(item => item.nativity_group === "US-born");
+      row = {
+        foreign: foreign ? foreign[cfg.trendValue] : null,
+        us: us ? us[cfg.trendValue] : null
+      };
+    } else {
+      row = rows[0] || {};
+    }
+  } else {
+    row = DATA.usa[cfg.mapKey].find(item => item.period === period && item.state === place);
+  }
+
+  if (!row || (cfg.isGap && row.foreign == null && row.us == null)) {
     blankPlot("breakdown", "Selected state detail", "No detail data available.");
     return;
   }
@@ -918,7 +1280,7 @@ function renderUsaBreakdown(cfg, period, place) {
     Plotly.newPlot("breakdown", [{
       type: "bar",
       x: ["Foreign-born", "US-born"],
-      y: [row[cfg.foreign], row[cfg.us]],
+      y: [row.foreign, row.us],
       marker: {color: ["#116466", "#6f7f8f"]},
       hovertemplate: "%{x}<br>%{y:.1f}<extra></extra>"
     }], {
@@ -931,11 +1293,14 @@ function renderUsaBreakdown(cfg, period, place) {
     }, {responsive: true});
     document.getElementById("breakdownNote").textContent = "The gap is foreign-born rate minus US-born rate.";
   } else {
-    const national = aggregateNational(DATA.usa[cfg.mapKey].filter(item => item.period === period), cfg.value, null)[0];
+    const nationalRows = selectedYear
+      ? DATA.usa[cfg.trendKey].filter(item => item.YEAR === selectedYear)
+      : DATA.usa[cfg.mapKey].filter(item => item.period === period);
+    const national = aggregateNational(nationalRows, cfg.trendValue, null)[0];
     Plotly.newPlot("breakdown", [{
       type: "bar",
       x: [place, "National"],
-      y: [row[cfg.value], national ? national.value : null],
+      y: [row[cfg.trendValue], national ? national.value : null],
       marker: {color: ["#116466", "#6f7f8f"]},
       hovertemplate: "%{x}<br>%{y:.1f}%<extra></extra>"
     }], {
@@ -946,36 +1311,58 @@ function renderUsaBreakdown(cfg, period, place) {
       paper_bgcolor: "white",
       plot_bgcolor: "white"
     }, {responsive: true});
-    document.getElementById("breakdownNote").textContent = "National comparison is weighted from the period-pooled state file.";
+    document.getElementById("breakdownNote").textContent = "National comparison is weighted from the selected dataset.";
   }
 }
 
-function eurostatRowsForMap(cfg) {
-  if (cfg.kind === "gap") {
-    return DATA.eurostat.gapPeriod.filter(row =>
-      row.period === periodSelect.value &&
+function eurostatRowsForMap(cfg, year = null) {
+  if (year == null) {
+    year = getSelectedYear();
+  }
+
+  if (year != null) {
+    if (cfg.source === "outcomes") {
+      return DATA.eurostat.outcomeYear.filter(row =>
+        row.YEAR === year &&
+        row.metric_key === cfg.metricKey &&
+        row[cfg.value] != null &&
+        row.iso3
+      );
+    }
+    if (cfg.kind === "gap") {
+      return DATA.eurostat.gapYear.filter(row =>
+        row.YEAR === year &&
+        row.sex === sexSelect.value &&
+        row.age === ageSelect.value &&
+        row.comparison_group === cfg.comparisonGroup &&
+        row.iso3
+      );
+    }
+    return DATA.eurostat.countryYear.filter(row =>
+      row.YEAR === year &&
       row.sex === sexSelect.value &&
       row.age === ageSelect.value &&
-      row.comparison_group === cfg.comparisonGroup &&
-      row.is_aggregate === 0 &&
+      row.citizen_group === cfg.citizenGroup &&
       row.iso3
     );
   }
-  return DATA.eurostat.countryPeriod.filter(row =>
-    row.period === periodSelect.value &&
-    row.sex === sexSelect.value &&
-    row.age === ageSelect.value &&
-    row.citizen_group === cfg.citizenGroup &&
-    row.is_aggregate === 0 &&
-    row.iso3
-  );
+
+  return [];
 }
 
-function eurostatOutcomeRowsForSelection(cfg, includeAggregates = false) {
-  const sourceRows = periodSelect.value === "Latest available"
-    ? DATA.eurostat.outcomeLatest
-    : DATA.eurostat.outcomePeriod;
-  return sourceRows.filter(row =>
+function eurostatOutcomeRowsForSelection(cfg, includeAggregates = false, year = null) {
+  if (year == null) {
+    year = getSelectedYear();
+  }
+  if (year != null) {
+    return DATA.eurostat.outcomeYear.filter(row =>
+      row.YEAR === year &&
+      row.metric_key === cfg.metricKey &&
+      row[cfg.value] != null &&
+      (includeAggregates || (row.is_aggregate === 0 && row.iso3))
+    );
+  }
+  return DATA.eurostat.outcomeLatest.filter(row =>
     row.metric_key === cfg.metricKey &&
     row[cfg.value] != null &&
     (includeAggregates || (row.is_aggregate === 0 && row.iso3))
@@ -994,11 +1381,14 @@ function outcomeCoverageLabel(row) {
 }
 
 function renderEurostatOutcome(cfg) {
-  const period = periodSelect.value;
-  const place = placeSelect.value;
-  const rows = eurostatOutcomeRowsForSelection(cfg);
+  const selectedYear = getSelectedYear();
+  const selectedPlaces = new Set(getSelectedPlaces());
+  const primaryPlace = Array.from(selectedPlaces)[0] || (placeSelect.options[0] && placeSelect.options[0].value);
+  const periodOrYear = selectedYear ? String(selectedYear) : "Latest available";
+  const rows = eurostatOutcomeRowsForSelection(cfg, false, selectedYear);
   const values = rows.map(row => row[cfg.value]);
-  const scale = mapScale(values, cfg.isGap);
+  const scale = getStableScale(cfg, "eurostat");
+  const opacities = rows.map(row => selectedPlaces.size === 0 || selectedPlaces.has(row.country_key) ? 1 : 0.32);
   const hovertemplate = cfg.metricKey === "incarceration"
     ? "<b>%{text}</b><br>Ratio: %{z:.2f}x<br>Foreign-citizen share: %{customdata[2]:.1f}%<br>National-citizen share: %{customdata[0]:.1f}%<br>Coverage: %{customdata[3]}<extra></extra>"
     : "<b>%{text}</b><br>Gap: %{z:.1f} pp<br>Extra-EU migrant: %{customdata[2]:.1f}%<br>EU migrant: %{customdata[1]:.1f}%<br>Native-born: %{customdata[0]:.1f}%<br>Coverage: %{customdata[3]}<extra></extra>";
@@ -1017,11 +1407,11 @@ function renderEurostatOutcome(cfg) {
       reversescale: Boolean(cfg.reversescale),
       zmin: scale.zmin,
       zmax: scale.zmax,
-      marker: {line: {color: "white", width: 0.6}},
-      colorbar: {title: cfg.units},
+      marker: {line: {color: "white", width: 0.6}, opacity: opacities},
+      colorbar: {title: getEurostatDisplayUnits(cfg)},
       hovertemplate
     }], {
-      title: `${cfg.title} - ${period}`,
+      title: `${cfg.title} - ${periodOrYear}`,
       geo: {
         scope: "europe",
         projection: {type: "natural earth"},
@@ -1036,44 +1426,48 @@ function renderEurostatOutcome(cfg) {
     }, {responsive: true});
   }
 
-  renderEurostatOutcomeRanking(cfg, rows);
-  renderEurostatOutcomeTrend(cfg, place);
-  renderEurostatOutcomeBreakdown(cfg, place);
+  renderEurostatOutcomeRanking(cfg, rows, periodOrYear, selectedPlaces);
+  renderEurostatOutcomeTrend(cfg, primaryPlace, selectedYear);
+  renderEurostatOutcomeBreakdown(cfg, primaryPlace, selectedYear);
 
-  const periodNote = period === "Latest available"
-    ? "Map uses each country's latest usable year."
-    : "Period values are means across available annual observations.";
+  const periodNote = selectedYear
+    ? `Map uses data for ${selectedYear}.`
+    : periodOrYear === "Latest available"
+      ? "Map uses each country's latest usable year."
+      : "Period values are means across available annual observations.";
   document.getElementById("mapNote").textContent = `${cfg.note} ${periodNote}`;
   document.getElementById("rankingNote").textContent = cfg.rankDirection === "ascending"
     ? "Ranking highlights the most negative gaps first."
     : "Ranking highlights the highest values first.";
 }
 
-function renderEurostatOutcomeRanking(cfg, rows) {
-  const rankingRows = rows
+function renderEurostatOutcomeRanking(cfg, rows, periodOrYear, selectedPlaces) {
+  const allRows = rows
     .filter(row => row[cfg.value] != null)
-    .sort((a, b) => cfg.rankDirection === "ascending" ? a[cfg.value] - b[cfg.value] : b[cfg.value] - a[cfg.value])
-    .slice(0, 12)
-    .reverse();
+    .sort((a, b) => cfg.rankDirection === "ascending" ? visualEurostatValue(cfg, a[cfg.value]) - visualEurostatValue(cfg, b[cfg.value]) : visualEurostatValue(cfg, b[cfg.value]) - visualEurostatValue(cfg, a[cfg.value]));
+  const topRows = allRows.slice(0, 12);
+  const extraRows = selectedPlaces.size > 0
+    ? allRows.filter(row => selectedPlaces.has(row.country_key) && !topRows.includes(row)).slice(0, 5)
+    : [];
+  const rankingRows = [...topRows, ...extraRows].reverse();
 
   if (!rankingRows.length) {
     blankPlot("ranking", "Country ranking", "No ranking data available.");
     return;
   }
 
+  const opacities = rankingRows.map(row => selectedPlaces.has(row.country_key) ? 1 : 0.32);
   Plotly.newPlot("ranking", [{
     type: "bar",
     orientation: "h",
     y: rankingRows.map(row => row.country),
-    x: rankingRows.map(row => row[cfg.value]),
+    x: rankingRows.map(row => visualEurostatValue(cfg, row[cfg.value])),
     customdata: rankingRows.map(row => outcomeCoverageLabel(row)),
-    marker: {color: "#116466"},
-    hovertemplate: cfg.units === "ratio"
-      ? "<b>%{y}</b><br>%{x:.2f}x<br>%{customdata}<extra></extra>"
-      : "<b>%{y}</b><br>%{x:.1f} " + cfg.units + "<br>%{customdata}<extra></extra>"
+    marker: {color: "#116466", opacity: opacities},
+    hovertemplate: "<b>%{y}</b><br>%{x:.1f} " + getEurostatDisplayUnits(cfg) + "<br>%{customdata}<extra></extra>"
   }], {
-    title: `${cfg.rankDirection === "ascending" ? "Largest disadvantages" : "Highest countries"} - ${cfg.title}`,
-    xaxis: {title: cfg.units, zeroline: true},
+    title: `${cfg.rankDirection === "ascending" ? "Largest disadvantages" : "Highest countries"} - ${cfg.title} - ${periodOrYear}`,
+    xaxis: {title: getEurostatDisplayUnits(cfg), zeroline: true},
     yaxis: {title: ""},
     margin: {l: 135, r: 20, t: 45, b: 50},
     paper_bgcolor: "white",
@@ -1081,7 +1475,7 @@ function renderEurostatOutcomeRanking(cfg, rows) {
   }, {responsive: true});
 }
 
-function renderEurostatOutcomeTrend(cfg, place) {
+function renderEurostatOutcomeTrend(cfg, place, selectedYear) {
   const selectedRows = DATA.eurostat.outcomeYear
     .filter(row => row.country_key === place && row.metric_key === cfg.metricKey && row[cfg.value] != null)
     .sort((a, b) => a.YEAR - b.YEAR);
@@ -1089,6 +1483,8 @@ function renderEurostatOutcomeTrend(cfg, place) {
     .filter(row => row.country_code === "EU" && row.metric_key === cfg.metricKey && row[cfg.value] != null)
     .sort((a, b) => a.YEAR - b.YEAR);
   const traces = [];
+  const layout = trendLayout(`${cfg.title} over time`, getEurostatDisplayUnits(cfg));
+  addYearMarker(layout, selectedYear);
 
   if (selectedRows.length) {
     traces.push({
@@ -1096,7 +1492,7 @@ function renderEurostatOutcomeTrend(cfg, place) {
       mode: "lines+markers",
       name: selectedRows[0].country,
       x: selectedRows.map(row => row.YEAR),
-      y: selectedRows.map(row => row[cfg.value]),
+      y: selectedRows.map(row => visualEurostatValue(cfg, row[cfg.value])),
       line: {color: "#116466"}
     });
   }
@@ -1106,7 +1502,7 @@ function renderEurostatOutcomeTrend(cfg, place) {
       mode: "lines+markers",
       name: "EU aggregate",
       x: euRows.map(row => row.YEAR),
-      y: euRows.map(row => row[cfg.value]),
+      y: euRows.map(row => visualEurostatValue(cfg, row[cfg.value])),
       line: {dash: "dot", color: "#c44536"}
     });
   }
@@ -1114,14 +1510,16 @@ function renderEurostatOutcomeTrend(cfg, place) {
   if (!traces.length) {
     blankPlot("trend", `${cfg.title} over time`, "No trend data available for the selected country.");
   } else {
-    Plotly.newPlot("trend", traces, trendLayout(`${cfg.title} over time`, cfg.units), {responsive: true});
+    Plotly.newPlot("trend", traces, layout, {responsive: true});
   }
 
-  document.getElementById("trendNote").textContent = "Trend uses annual rows from the normalized EU outcomes file.";
+  document.getElementById("trendNote").textContent = selectedYear
+    ? `Trend uses annual rows from the normalized EU outcomes file. Highlighted year: ${selectedYear}.`
+    : "Trend uses annual rows from the normalized EU outcomes file.";
 }
 
-function renderEurostatOutcomeBreakdown(cfg, place) {
-  const row = eurostatOutcomeRowsForSelection(cfg, true).find(item => item.country_key === place);
+function renderEurostatOutcomeBreakdown(cfg, place, selectedYear) {
+  const row = eurostatOutcomeRowsForSelection(cfg, true, selectedYear).find(item => item.country_key === place);
   if (!row) {
     blankPlot("breakdown", "Selected country detail", "No detail data available.");
     document.getElementById("breakdownNote").textContent = "";
@@ -1162,16 +1560,22 @@ function renderEurostat(cfg) {
     return;
   }
 
-  const period = periodSelect.value;
-  const place = placeSelect.value;
-  const rows = eurostatRowsForMap(cfg);
+  const selectedYear = getSelectedYear();
+  const selectedPlaces = new Set(getSelectedPlaces());
+  const primaryPlace = Array.from(selectedPlaces)[0] || (placeSelect.options[0] && placeSelect.options[0].value);
+  const periodOrYear = selectedYear ? String(selectedYear) : "Latest available";
+  const rows = eurostatRowsForMap(cfg, selectedYear);
   const values = rows.map(row => row[cfg.value]);
-  const scale = mapScale(values, cfg.kind === "gap");
+  const scale = getStableScale(cfg, "eurostat");
+  const opacities = rows.map(row => selectedPlaces.size === 0 || selectedPlaces.has(row.country_key) ? 1 : 0.32);
 
   if (!rows.length) {
     blankPlot("map", cfg.title, "No country data available for this selection.");
   } else {
-    Plotly.newPlot("map", [{
+    const selectedRows = selectedPlaces.size
+      ? rows.filter(row => selectedPlaces.has(row.country_key))
+      : [];
+    const baseTrace = {
       type: "choropleth",
       locationmode: "ISO-3",
       locations: rows.map(row => row.iso3),
@@ -1184,13 +1588,40 @@ function renderEurostat(cfg) {
       reversescale: cfg.kind === "gap",
       zmin: scale.zmin,
       zmax: scale.zmax,
+      opacity: selectedPlaces.size ? 0.32 : 1,
       marker: {line: {color: "white", width: 0.6}},
       colorbar: {title: cfg.units},
       hovertemplate: cfg.kind === "gap"
         ? "<b>%{text}</b><br>Gap: %{z:.1f} pp<br>%{customdata[2]}: %{customdata[0]:.1f}%<br>Reporting-country citizens: %{customdata[1]:.1f}%<extra></extra>"
         : "<b>%{text}</b><br>%{customdata[0]}: %{z:.1f}%<extra></extra>"
-    }], {
-      title: `${cfg.title} - ${period}`,
+    };
+    const traces = [baseTrace];
+
+    if (selectedRows.length) {
+      traces.push({
+        type: "choropleth",
+        locationmode: "ISO-3",
+        locations: selectedRows.map(row => row.iso3),
+        z: selectedRows.map(row => row[cfg.value]),
+        text: selectedRows.map(row => row.country),
+        customdata: selectedRows.map(row => cfg.kind === "gap"
+          ? [row.comparison_rate_pct, row.reporting_country_rate_pct, row.comparison_label]
+          : [row.citizen_label]),
+        colorscale: cfg.kind === "gap" ? "RdBu" : "YlGnBu",
+        reversescale: cfg.kind === "gap",
+        zmin: scale.zmin,
+        zmax: scale.zmax,
+        opacity: 1,
+        marker: {line: {color: "white", width: 1}},
+        showscale: false,
+        hovertemplate: cfg.kind === "gap"
+          ? "<b>%{text}</b><br>Gap: %{z:.1f} pp<br>%{customdata[2]}: %{customdata[0]:.1f}%<br>Reporting-country citizens: %{customdata[1]:.1f}%<extra></extra>"
+          : "<b>%{text}</b><br>%{customdata[0]}: %{z:.1f} pp<extra></extra>"
+      });
+    }
+
+    Plotly.newPlot("map", traces, {
+      title: `${cfg.title} - ${periodOrYear}`,
       geo: {
         scope: "europe",
         projection: {type: "natural earth"},
@@ -1205,36 +1636,42 @@ function renderEurostat(cfg) {
     }, {responsive: true});
   }
 
-  renderEurostatRanking(cfg, rows);
-  renderEurostatTrend(cfg, place);
-  renderEurostatBreakdown(period, place);
-  document.getElementById("mapNote").textContent = `${cfg.note} Filter: ${sexSelect.value}, ${ageSelect.value}.`;
+  renderEurostatRanking(cfg, rows, periodOrYear, selectedPlaces);
+  renderEurostatTrend(cfg, primaryPlace, selectedYear);
+  renderEurostatBreakdown(periodOrYear, primaryPlace, selectedYear);
+  document.getElementById("mapNote").textContent = `${cfg.note} ${selectedYear ? `Data for ${selectedYear}.` : `Filter: ${sexSelect.value}, ${ageSelect.value}.`}`;
   document.getElementById("rankingNote").textContent = cfg.kind === "gap"
-    ? "Ranking uses the selected period, age, and sex. Positive gaps mean the comparison group has a higher employment rate."
-    : "Ranking uses the selected period, age, and sex.";
+    ? `Ranking uses the selected ${selectedYear ? "year" : "period"}, age, and sex. Positive gaps mean the comparison group has a higher employment rate.`
+    : `Ranking uses the selected ${selectedYear ? "year" : "period"}, age, and sex.`;
+  renderRadarComparison("eurostat", cfg, selectedPlaces, selectedYear);
 }
 
-function renderEurostatRanking(cfg, rows) {
-  const rankingRows = rows
+function renderEurostatRanking(cfg, rows, periodOrYear, selectedPlaces) {
+  const allRows = rows
     .filter(row => row[cfg.value] != null)
-    .sort((a, b) => b[cfg.value] - a[cfg.value])
-    .slice(0, 12)
-    .reverse();
+    .sort((a, b) => b[cfg.value] - a[cfg.value]);
+  const topRows = allRows.slice(0, 12);
+  const extraRows = selectedPlaces.size > 0
+    ? allRows.filter(row => selectedPlaces.has(row.country_key) && !topRows.includes(row)).slice(0, 5)
+    : [];
+  const rankingRows = [...topRows, ...extraRows].reverse();
 
   if (!rankingRows.length) {
     blankPlot("ranking", "Country ranking", "No ranking data available.");
     return;
   }
 
+  const opacities = rankingRows.map(row => selectedPlaces.has(row.country_key) ? 1 : 0.32);
+
   Plotly.newPlot("ranking", [{
     type: "bar",
     orientation: "h",
     y: rankingRows.map(row => row.country),
     x: rankingRows.map(row => row[cfg.value]),
-    marker: {color: "#116466"},
+    marker: {color: "#116466", opacity: opacities},
     hovertemplate: "<b>%{y}</b><br>%{x:.1f} " + cfg.units + "<extra></extra>"
   }], {
-    title: `Highest countries - ${cfg.title}`,
+    title: `Highest countries - ${cfg.title} - ${periodOrYear}`,
     xaxis: {title: cfg.units, zeroline: true},
     yaxis: {title: ""},
     margin: {l: 135, r: 20, t: 45, b: 50},
@@ -1243,40 +1680,138 @@ function renderEurostatRanking(cfg, rows) {
   }, {responsive: true});
 }
 
-function renderEurostatTrend(cfg, place) {
+function buildRadarSeries(region, cfg, place, selectedYear) {
+  if (region === "usa") {
+    const rows = DATA.usa[cfg.trendKey].filter(row => row.state === place && row.YEAR === selectedYear);
+    if (!rows.length) {
+      return null;
+    }
+    if (cfg.isGap) {
+      const foreign = rows.find(r => r.nativity_group === "Foreign-born");
+      const us = rows.find(r => r.nativity_group === "US-born");
+      return foreign && us ? foreign[cfg.trendValue] - us[cfg.trendValue] : null;
+    }
+    const row = rows.find(r => r.nativity_group == null) || rows[0];
+    return row ? row[cfg.trendValue] : null;
+  }
+
+  if (cfg.source === "outcomes") {
+    const row = DATA.eurostat.outcomeYear.find(r => r.YEAR === selectedYear && r.metric_key === cfg.metricKey && r.country_key === place);
+    return row ? row[cfg.value] : null;
+  }
+
+  if (cfg.kind === "gap") {
+    const row = DATA.eurostat.gapYear.find(r =>
+      r.YEAR === selectedYear &&
+      r.country_key === place &&
+      r.sex === sexSelect.value &&
+      r.age === ageSelect.value &&
+      r.comparison_group === cfg.comparisonGroup
+    );
+    return row ? row[cfg.value] : null;
+  }
+
+  const row = DATA.eurostat.countryYear.find(r =>
+    r.YEAR === selectedYear &&
+    r.country_key === place &&
+    r.sex === sexSelect.value &&
+    r.age === ageSelect.value &&
+    r.citizen_group === cfg.citizenGroup
+  );
+  return row ? row[cfg.value] : null;
+}
+
+function renderRadarComparison(region, cfg, selectedPlaces, selectedYear) {
+  const allTopics = region === "usa" ? Object.values(USA_TOPICS) : Object.values(EUROSTAT_TOPICS);
+  const placeList = Array.from(selectedPlaces);
+  const availableTopics = allTopics.filter(topic =>
+    placeList.some(place => buildRadarSeries(region, topic, place, selectedYear) != null)
+  );
+  const labels = availableTopics.map(topic => topic.label);
+  const radarColors = ["#c44536", "#2a6f97", "#8a2be2", "#ff8c00", "#2e8b57"];
+  const traces = placeList.map((place, index) => ({
+    type: "scatterpolar",
+    r: availableTopics.map(topic => visualEurostatValue(topic, buildRadarSeries(region, topic, place, selectedYear))),
+    theta: labels,
+    fill: "toself",
+    name: place,
+    line: {color: radarColors[index % radarColors.length]}
+  })).filter(trace => trace.r.some(value => value != null));
+
+  if (!traces.length) {
+    blankPlot("radar", "Topic comparison", "Select up to 5 states or countries to compare.");
+    document.getElementById("radarNote").textContent = "Radar comparison updates for the selected places and year.";
+    return;
+  }
+
+  Plotly.newPlot("radar", traces, {
+    title: "Topic comparison",
+    polar: {
+      radialaxis: {visible: true, tickfont: {size: 10}},
+      angularaxis: {tickfont: {size: 11}}
+    },
+    margin: {l: 60, r: 20, t: 45, b: 80},
+    paper_bgcolor: "white",
+    plot_bgcolor: "white",
+    legend: {orientation: "h", y: -0.22}
+  }, {responsive: true});
+
+  document.getElementById("radarNote").textContent = `Comparison across ${labels.length} topics for the selected places.`;
+}
+
+function renderEurostatTrend(cfg, selectedPlaces, selectedYear) {
+  const places = selectedPlaces.length ? selectedPlaces : [placeSelect.options[0] && placeSelect.options[0].value].filter(Boolean);
   const sex = sexSelect.value;
   const age = ageSelect.value;
   let traces = [];
+  const layout = trendLayout(`${cfg.title} over time`, getEurostatDisplayUnits(cfg));
+  addYearMarker(layout, selectedYear);
 
   if (cfg.kind === "gap") {
-    const selectedRows = DATA.eurostat.gapYear
-      .filter(row => row.country_key === place && row.sex === sex && row.age === age && row.comparison_group === cfg.comparisonGroup)
-      .sort((a, b) => a.YEAR - b.YEAR);
+    places.forEach((place, index) => {
+      const selectedRows = DATA.eurostat.gapYear
+        .filter(row => row.country_key === place && row.sex === sex && row.age === age && row.comparison_group === cfg.comparisonGroup)
+        .sort((a, b) => a.YEAR - b.YEAR);
+      if (selectedRows.length) {
+        traces.push({
+          type: "scatter",
+          mode: "lines+markers",
+          name: selectedRows[0].country,
+          x: selectedRows.map(row => row.YEAR),
+          y: selectedRows.map(row => visualEurostatValue(cfg, row.employment_rate_gap_pp)),
+          line: {color: ["#116466", "#c44536", "#6f7f8f", "#8a6d3b", "#2e8b57"][index % 5]}
+        });
+      }
+    });
+
     const euRows = DATA.eurostat.gapYear
       .filter(row => row.country_key === "EU27_2020" && row.sex === sex && row.age === age && row.comparison_group === cfg.comparisonGroup)
       .sort((a, b) => a.YEAR - b.YEAR);
-
-    if (selectedRows.length) {
-      traces.push({type: "scatter", mode: "lines+markers", name: selectedRows[0].country, x: selectedRows.map(row => row.YEAR), y: selectedRows.map(row => row.employment_rate_gap_pp), line: {color: "#116466"}});
-    }
-    if (place !== "EU27_2020" && euRows.length) {
-      traces.push({type: "scatter", mode: "lines+markers", name: "EU27 aggregate", x: euRows.map(row => row.YEAR), y: euRows.map(row => row.employment_rate_gap_pp), line: {dash: "dot", color: "#c44536"}});
+    if (places.length && euRows.length) {
+      traces.push({
+        type: "scatter",
+        mode: "lines+markers",
+        name: "EU27 aggregate",
+        x: euRows.map(row => row.YEAR),
+        y: euRows.map(row => visualEurostatValue(cfg, row.employment_rate_gap_pp)),
+        line: {dash: "dot", color: "#c44536"}
+      });
     }
   } else {
-    EU_TREND_GROUPS.forEach((group, index) => {
-      const groupRows = DATA.eurostat.countryYear
-        .filter(row => row.country_key === place && row.sex === sex && row.age === age && row.citizen_group === group)
+    places.forEach((place, index) => {
+      const placeRows = DATA.eurostat.countryYear
+        .filter(row => row.country_key === place && row.sex === sex && row.age === age && row.citizen_group === cfg.citizenGroup)
         .sort((a, b) => a.YEAR - b.YEAR);
-      if (!groupRows.length) {
+      if (!placeRows.length) {
         return;
       }
       traces.push({
         type: "scatter",
         mode: "lines+markers",
-        name: groupRows[0].citizen_label,
-        x: groupRows.map(row => row.YEAR),
-        y: groupRows.map(row => row.employment_rate_pct),
-        line: {color: ["#116466", "#c44536", "#6f7f8f", "#8a6d3b"][index]}
+        name: placeRows[0].country,
+        x: placeRows.map(row => row.YEAR),
+        y: placeRows.map(row => visualEurostatValue(cfg, row.employment_rate_pct)),
+        line: {color: ["#116466", "#c44536", "#6f7f8f", "#8a6d3b", "#2e8b57"][index % 5]}
       });
     });
   }
@@ -1284,7 +1819,7 @@ function renderEurostatTrend(cfg, place) {
   if (!traces.length) {
     blankPlot("trend", `${cfg.title} over time`, "No trend data available for the selected country.");
   } else {
-    Plotly.newPlot("trend", traces, trendLayout(`${cfg.title} over time`, cfg.units), {responsive: true});
+    Plotly.newPlot("trend", traces, layout, {responsive: true});
   }
 
   document.getElementById("trendNote").textContent = cfg.kind === "gap"
@@ -1292,9 +1827,10 @@ function renderEurostatTrend(cfg, place) {
     : "Trend shows available citizenship groups for the selected country.";
 }
 
-function renderEurostatBreakdown(period, place) {
-  const rows = DATA.eurostat.countryPeriod
-    .filter(row => row.period === period && row.country_key === place && row.sex === sexSelect.value && row.age === ageSelect.value && row.employment_rate_pct != null)
+function renderEurostatBreakdown(period, place, selectedYear) {
+  const rows = (selectedYear ? DATA.eurostat.countryYear : DATA.eurostat.countryPeriod)
+    .filter(row => row.YEAR === selectedYear || row.period === period)
+    .filter(row => row.country_key === place && row.sex === sexSelect.value && row.age === ageSelect.value && row.employment_rate_pct != null)
     .sort((a, b) => CITIZEN_ORDER.indexOf(a.citizen_group) - CITIZEN_ORDER.indexOf(b.citizen_group));
 
   if (!rows.length) {
@@ -1318,7 +1854,9 @@ function renderEurostatBreakdown(period, place) {
     plot_bgcolor: "white"
   }, {responsive: true});
 
-  document.getElementById("breakdownNote").textContent = "Period values are means across available annual Eurostat observations; suppressed values remain missing.";
+  document.getElementById("breakdownNote").textContent = selectedYear
+    ? "Annual values are shown for the selected year; suppressed values remain missing."
+    : "Period values are means across available annual Eurostat observations; suppressed values remain missing.";
 }
 
 function trendLayout(title, yTitle) {
@@ -1347,27 +1885,43 @@ function render() {
 }
 
 function handleRegionChange() {
+  stopYearAnimation();
   configureControls(true);
+  updateYearSlider(currentTopicConfig());
   render();
 }
 
 function handleFilterChange() {
+  stopYearAnimation();
   configureControls(false);
+  updateYearSlider(currentTopicConfig());
   render();
 }
 
+function handlePlaceChange() {
+  ensureMaxSelectedPlaces();
+  render();
+}
+
+yearSlider.addEventListener("input", () => {
+  yearValue.textContent = yearSlider.value;
+  render();
+});
+
+playButton.addEventListener("click", toggleYearAnimation);
+
 regionSelect.addEventListener("change", handleRegionChange);
 topicSelect.addEventListener("change", handleFilterChange);
-periodSelect.addEventListener("change", handleFilterChange);
 sexSelect.addEventListener("change", handleFilterChange);
 ageSelect.addEventListener("change", handleFilterChange);
-placeSelect.addEventListener("change", render);
+placeSelect.addEventListener("change", handlePlaceChange);
 
 async function init() {
   try {
     await loadAllData();
     state.ready = true;
     configureControls(true);
+    updateYearSlider(currentTopicConfig());
     statusBox.classList.add("hidden");
     render();
   } catch (error) {
