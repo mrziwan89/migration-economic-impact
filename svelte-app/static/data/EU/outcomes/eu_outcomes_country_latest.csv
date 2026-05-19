@@ -1,0 +1,135 @@
+YEAR,period,country,country_code,country_key,iso3,is_aggregate,metric_key,metric_label,unit,native_value,eu_migrant_value,extra_eu_migrant_value,gap_extra_eu_vs_native_pp,ratio_foreign_vs_native
+2025,,Austria,AT,AUT,AUT,0,brain_waste,Highly educated employment rate,percentage points,80.25,78.17222222222222,66.1470588235294,-14.102941176470594,
+2025,,Belgium,BE,BEL,BEL,0,brain_waste,Highly educated employment rate,percentage points,77.98888888888888,78.56666666666666,64.66875,-13.320138888888877,
+2025,,Bulgaria,BG,BGR,BGR,0,brain_waste,Highly educated employment rate,percentage points,82.27777777777777,,72.68,-9.597777777777765,
+2025,,Croatia,HR,HRV,HRV,0,brain_waste,Highly educated employment rate,percentage points,77.9388888888889,77.43333333333334,83.81,5.871111111111105,
+2025,,Cyprus,CY,CYP,CYP,0,brain_waste,Highly educated employment rate,percentage points,82.03333333333333,80.2764705882353,67.3,-14.733333333333334,
+2025,,Czechia,CZ,CZE,CZE,0,brain_waste,Highly educated employment rate,percentage points,80.97222222222223,89.42666666666668,80.775,-0.19722222222222285,
+2020,2020-2024,Denmark,DK,DNK,DNK,0,brain_waste,Highly educated employment rate,percentage points,79.41111111111111,82.10625,72.375,-7.036111111111111,
+2025,,Estonia,EE,EST,EST,0,brain_waste,Highly educated employment rate,percentage points,83.69444444444444,82.24,69.8,-13.894444444444446,
+2025,,Finland,FI,FIN,FIN,0,brain_waste,Highly educated employment rate,percentage points,79.56666666666666,80.05714285714285,72.52499999999999,-7.041666666666671,
+2025,,France,FR,FRA,FRA,0,brain_waste,Highly educated employment rate,percentage points,78.85,76.86470588235295,63.49444444444445,-15.355555555555547,
+2025,,Germany,DE,DEU,DEU,0,brain_waste,Highly educated employment rate,percentage points,81.63333333333334,79.36111111111111,60.62222222222223,-21.011111111111113,
+2025,,Greece,EL,GRC,GRC,0,brain_waste,Highly educated employment rate,percentage points,74.19999999999999,46.355555555555554,66.49375,-7.706249999999983,
+2025,,Hungary,HU,HUN,HUN,0,brain_waste,Highly educated employment rate,percentage points,82.16111111111111,75.46666666666667,77.68571428571428,-4.475396825396828,
+2024,2020-2024,Iceland,IS,ISL,ISL,0,brain_waste,Highly educated employment rate,percentage points,86.48333333333333,92.74666666666667,88.42666666666668,1.9433333333333422,
+2025,,Ireland,IE,IRL,IRL,0,brain_waste,Highly educated employment rate,percentage points,81.37222222222222,88.1125,79.48823529411764,-1.8839869281045765,
+2025,,Italy,IT,ITA,ITA,0,brain_waste,Highly educated employment rate,percentage points,76.78333333333333,73.53529411764706,62.417647058823526,-14.365686274509805,
+2025,,Latvia,LV,LVA,LVA,0,brain_waste,Highly educated employment rate,percentage points,83.39444444444445,,65.88823529411764,-17.50620915032681,
+2025,,Lithuania,LT,LTU,LTU,0,brain_waste,Highly educated employment rate,percentage points,83.58888888888889,88.89090909090909,80.79375,-2.7951388888888857,
+2025,,Luxembourg,LU,LUX,LUX,0,brain_waste,Highly educated employment rate,percentage points,80.29375,86.40625,74.47500000000001,-5.818749999999994,
+2020,2020-2024,Malta,MT,MLT,MLT,0,brain_waste,Highly educated employment rate,percentage points,84.38888888888889,94.7375,70.35882352941177,-14.03006535947712,
+2019,2014-2019,Montenegro,ME,MNE,MNE,0,brain_waste,Highly educated employment rate,percentage points,72.65555555555555,,80.32222222222222,7.666666666666671,
+2025,,Netherlands,NL,NLD,NLD,0,brain_waste,Highly educated employment rate,percentage points,82.69444444444444,79.26666666666667,67.94999999999999,-14.744444444444454,
+2025,,North Macedonia,MK,MKD,MKD,0,brain_waste,Highly educated employment rate,percentage points,74.25555555555555,78.60000000000001,75.5625,1.3069444444444542,
+2025,,Norway,NO,NOR,NOR,0,brain_waste,Highly educated employment rate,percentage points,81.27777777777777,83.53125,71.675,-9.602777777777774,
+2025,,Poland,PL,POL,POL,0,brain_waste,Highly educated employment rate,percentage points,82.19444444444444,93.8111111111111,85.76875,3.5743055555555543,
+2025,,Portugal,PT,PRT,PRT,0,brain_waste,Highly educated employment rate,percentage points,82.12222222222222,86.87333333333332,76.55,-5.572222222222223,
+2025,,Romania,RO,ROU,ROU,0,brain_waste,Highly educated employment rate,percentage points,80.39444444444445,,71.6125,-8.781944444444449,
+2025,,Serbia,RS,SRB,SRB,0,brain_waste,Highly educated employment rate,percentage points,76.34444444444445,,59.85,-16.494444444444447,
+2025,,Slovakia,SK,SVK,SVK,0,brain_waste,Highly educated employment rate,percentage points,80.5611111111111,,86.7,6.1388888888889,
+2025,,Slovenia,SI,SVN,SVN,0,brain_waste,Highly educated employment rate,percentage points,81.40555555555555,77.73333333333333,66.04166666666667,-15.36388888888888,
+2025,,Spain,ES,ESP,ESP,0,brain_waste,Highly educated employment rate,percentage points,76.76111111111112,76.50555555555555,62.48888888888889,-14.272222222222233,
+2025,,Sweden,SE,SWE,SWE,0,brain_waste,Highly educated employment rate,percentage points,81.08888888888889,85.16875,70.24375,-10.845138888888883,
+2025,,Switzerland,CH,CHE,CHE,0,brain_waste,Highly educated employment rate,percentage points,82.44444444444444,81.02222222222223,61.82777777777778,-20.61666666666666,
+2019,2014-2019,United Kingdom,UK,GBR,GBR,0,brain_waste,Highly educated employment rate,percentage points,81.45555555555556,84.17777777777778,71.76111111111112,-9.694444444444443,
+2024,2020-2024,Albania,AL,ALB,ALB,0,incarceration,Foreign prison-population representation,ratio,96.98375870069606,,3.0162412993039442,-93.96751740139212,0.03110047846889952
+2024,2020-2024,Austria,AT,AUT,AUT,0,incarceration,Foreign prison-population representation,ratio,46.97114655762288,,53.02885344237711,6.057706884754232,1.128966553484548
+2024,2020-2024,Belgium,BE,BEL,BEL,0,incarceration,Foreign prison-population representation,ratio,54.129274102144954,,45.393877103849,-8.735396998295954,0.8386197276207367
+2024,2020-2024,Bosnia and Herzegovina,BA,BIH,BIH,0,incarceration,Foreign prison-population representation,ratio,65.49106049473427,,1.6899338721528288,-63.80112662258144,0.02580403889304413
+2024,2020-2024,Bulgaria,BG,BGR,BGR,0,incarceration,Foreign prison-population representation,ratio,96.83820867424517,,3.1617913257548333,-93.67641734849033,0.03265024590026039
+2024,2020-2024,Croatia,HR,HRV,HRV,0,incarceration,Foreign prison-population representation,ratio,78.24782666739961,,21.752369658941877,-56.495457008457734,0.27799327579285427
+2024,2020-2024,Cyprus,CY,CYP,CYP,0,incarceration,Foreign prison-population representation,ratio,46.010743196288715,,53.989256803711285,7.97851360742257,1.173405449535667
+2024,2020-2024,Czechia,CZ,CZE,CZE,0,incarceration,Foreign prison-population representation,ratio,91.78075554932235,,8.219244450677648,-83.5615110986447,0.08955302668281788
+2024,2020-2024,Denmark,DK,DNK,DNK,0,incarceration,Foreign prison-population representation,ratio,74.68196086761547,,25.318039132384527,-49.363921735230946,0.33901144049048737
+2024,2020-2024,Estonia,EE,EST,EST,0,incarceration,Foreign prison-population representation,ratio,66.58523529679742,,33.414764703202586,-33.170470593594835,0.5018344465444843
+2024,2020-2024,Finland,FI,FIN,FIN,0,incarceration,Foreign prison-population representation,ratio,76.68648866939797,,23.313511330602026,-53.37297733879595,0.30401067691478967
+2024,2020-2024,France,FR,FRA,FRA,0,incarceration,Foreign prison-population representation,ratio,75.32137497776546,,24.67862502223454,-50.64274995553092,0.32764437756904413
+2024,2020-2024,Greece,EL,GRC,GRC,0,incarceration,Foreign prison-population representation,ratio,47.9884740242939,,52.0115259757061,4.023051951412199,1.0838337128489552
+2024,2020-2024,Hungary,HU,HUN,HUN,0,incarceration,Foreign prison-population representation,ratio,95.89470558471407,,4.1052944152859245,-91.78941116942815,0.04281043870205408
+2024,2020-2024,Iceland,IS,ISL,ISL,0,incarceration,Foreign prison-population representation,ratio,61.0288113845795,,38.9711886154205,-22.057622769158996,0.6385703363914372
+2024,2020-2024,Ireland,IE,IRL,IRL,0,incarceration,Foreign prison-population representation,ratio,83.46020177545532,,16.539798224544686,-66.92040355091063,0.19817587152549693
+2024,2020-2024,Italy,IT,ITA,ITA,0,incarceration,Foreign prison-population representation,ratio,67.96014629181798,,32.039853708182015,-35.92029258363596,0.47145062888187805
+2020,2020-2024,Kosovo,XK,XKX,XKX,0,incarceration,Foreign prison-population representation,ratio,92.69363032699599,,7.30636967300401,-85.38726065399197,0.07882278045675065
+2024,2020-2024,Latvia,LV,LVA,LVA,0,incarceration,Foreign prison-population representation,ratio,92.98132506948245,,5.163913554629724,-87.81741151485272,0.0555371043676875
+2024,2020-2024,Liechtenstein,LI,LIE,LIE,0,incarceration,Foreign prison-population representation,ratio,24.67431243736777,,75.32568756263221,50.65137512526444,3.0527978339350184
+2024,2020-2024,Lithuania,LT,LTU,LTU,0,incarceration,Foreign prison-population representation,ratio,96.31691131419302,,3.6830886858069922,-92.63382262838603,0.038239273202942306
+2024,2020-2024,Luxembourg,LU,LUX,LUX,0,incarceration,Foreign prison-population representation,ratio,24.20403354355811,,75.79596645644189,51.59193291288378,3.1315427786049708
+2024,2020-2024,Malta,MT,MLT,MLT,0,incarceration,Foreign prison-population representation,ratio,47.63250883392226,,52.36749116607773,4.734982332155468,1.0994065281899108
+2024,2020-2024,Montenegro,ME,MNE,MNE,0,incarceration,Foreign prison-population representation,ratio,82.95536773857421,,17.0446322614258,-65.9107354771484,0.2054675029003585
+2024,2020-2024,Netherlands,NL,NLD,NLD,0,incarceration,Foreign prison-population representation,ratio,78.46501628436758,,21.53498371563241,-56.93003256873517,0.27445331353257846
+2024,2020-2024,North Macedonia,MK,MKD,MKD,0,incarceration,Foreign prison-population representation,ratio,94.28821640556582,,5.086918446002259,-89.20129795956356,0.05395073361152242
+2024,2020-2024,Norway,NO,NOR,NOR,0,incarceration,Foreign prison-population representation,ratio,72.43238817143927,,27.38922421860378,-45.04316395283549,0.3781350430387106
+2024,2020-2024,Poland,PL,POL,POL,0,incarceration,Foreign prison-population representation,ratio,96.33500445597805,,3.66499554402195,-92.6700089119561,0.03804427647788955
+2024,2020-2024,Portugal,PT,PRT,PRT,0,incarceration,Foreign prison-population representation,ratio,82.68167974304036,,17.31832025695966,-65.3633594860807,0.20945776997736198
+2024,2020-2024,Romania,RO,ROU,ROU,0,incarceration,Foreign prison-population representation,ratio,98.8904813210404,,1.1094782504987861,-97.78100307054162,0.011219262316025642
+2024,2020-2024,Serbia,RS,SRB,SRB,0,incarceration,Foreign prison-population representation,ratio,95.49428813975636,,4.505711860243642,-90.98857627951273,0.04718305092394124
+2024,2020-2024,Slovakia,SK,SVK,SVK,0,incarceration,Foreign prison-population representation,ratio,95.39724914328711,,4.602750856712891,-90.79449828657422,0.04824825556342341
+2024,2020-2024,Slovenia,SI,SVN,SVN,0,incarceration,Foreign prison-population representation,ratio,51.82731104213049,,48.172688957869525,-3.6546220842609642,0.9294846286489741
+2024,2020-2024,Spain,ES,ESP,ESP,0,incarceration,Foreign prison-population representation,ratio,67.3471186215633,,32.652898228258124,-34.69422039330517,0.4848447698518653
+2024,2020-2024,Sweden,SE,SWE,SWE,0,incarceration,Foreign prison-population representation,ratio,78.66486560836857,,21.335134391631428,-57.329731216737144,0.2712155449149046
+2024,2020-2024,Switzerland,CH,CHE,CHE,0,incarceration,Foreign prison-population representation,ratio,28.57775489186406,,71.42224510813594,42.84449021627188,2.499225197304407
+2024,2020-2024,Turkey,TR,TUR,TUR,0,incarceration,Foreign prison-population representation,ratio,96.07833019709857,,3.9216698029014423,-92.15666039419712,0.040817422564030696
+2014,2014-2019,Austria,AT,AUT,AUT,0,poverty,Poverty risk rate,percentage points,14.933333333333332,39.4,44.36666666666667,29.433333333333337,
+2014,2014-2019,Belgium,BE,BEL,BEL,0,poverty,Poverty risk rate,percentage points,18.099999999999998,29.766666666666666,68.83333333333333,50.733333333333334,
+2014,2014-2019,Bulgaria,BG,BGR,BGR,0,poverty,Poverty risk rate,percentage points,36.86666666666667,,38.5,1.6333333333333329,
+2014,2014-2019,Croatia,HR,HRV,HRV,0,poverty,Poverty risk rate,percentage points,29.133333333333336,,46.46666666666667,17.333333333333332,
+2014,2014-2019,Cyprus,CY,CYP,CYP,0,poverty,Poverty risk rate,percentage points,25.933333333333334,37.13333333333333,40.833333333333336,14.900000000000002,
+2014,2014-2019,Czechia,CZ,CZE,CZE,0,poverty,Poverty risk rate,percentage points,14.166666666666666,26.933333333333334,17.066666666666666,2.9000000000000004,
+2014,2014-2019,Denmark,DK,DNK,DNK,0,poverty,Poverty risk rate,percentage points,19.733333333333334,29.8,42.13333333333333,22.4,
+2014,2014-2019,Estonia,EE,EST,EST,0,poverty,Poverty risk rate,percentage points,22.233333333333334,17.5,39.4,17.166666666666664,
+2014,2014-2019,Euro area aggregate,EA,EA,,1,poverty,Poverty risk rate,percentage points,22.833333333333332,34.13333333333333,51.76666666666667,28.93333333333334,
+2014,2014-2019,European Union aggregate,EU,EU,,1,poverty,Poverty risk rate,percentage points,23.7,30.266666666666666,48.666666666666664,24.966666666666665,
+2014,2014-2019,Finland,FI,FIN,FIN,0,poverty,Poverty risk rate,percentage points,17.266666666666666,23.066666666666666,45.833333333333336,28.56666666666667,
+2014,2014-2019,France,FR,FRA,FRA,0,poverty,Poverty risk rate,percentage points,17.733333333333334,26.3,51.03333333333333,33.3,
+2014,2014-2019,Germany,DE,DEU,DEU,0,poverty,Poverty risk rate,percentage points,21.266666666666666,23.5,34.300000000000004,13.033333333333339,
+2014,2014-2019,Greece,EL,GRC,GRC,0,poverty,Poverty risk rate,percentage points,36.13333333333333,51.5,70.63333333333334,34.50000000000001,
+2013,2008-2013,Hungary,HU,HUN,HUN,0,poverty,Poverty risk rate,percentage points,34.9,36.333333333333336,29.9,-5.0,
+2014,2014-2019,Iceland,IS,ISL,ISL,0,poverty,Poverty risk rate,percentage points,10.833333333333334,11.700000000000001,11.033333333333333,0.1999999999999993,
+2014,2014-2019,Ireland,IE,IRL,IRL,0,poverty,Poverty risk rate,percentage points,28.2,22.566666666666666,47.76666666666667,19.566666666666674,
+2014,2014-2019,Italy,IT,ITA,ITA,0,poverty,Poverty risk rate,percentage points,27.166666666666668,41.833333333333336,50.93333333333334,23.76666666666667,
+2014,2014-2019,Latvia,LV,LVA,LVA,0,poverty,Poverty risk rate,percentage points,29.066666666666666,13.5,39.6,10.533333333333335,
+2014,2014-2019,Lithuania,LT,LTU,LTU,0,poverty,Poverty risk rate,percentage points,25.933333333333334,,38.43333333333333,12.499999999999996,
+2014,2014-2019,Luxembourg,LU,LUX,LUX,0,poverty,Poverty risk rate,percentage points,13.233333333333334,22.866666666666664,35.766666666666666,22.53333333333333,
+2014,2014-2019,Malta,MT,MLT,MLT,0,poverty,Poverty risk rate,percentage points,21.633333333333336,18.333333333333332,30.53333333333333,8.899999999999995,
+2014,2014-2019,Netherlands,NL,NLD,NLD,0,poverty,Poverty risk rate,percentage points,17.533333333333335,19.599999999999998,39.800000000000004,22.26666666666667,
+2014,2014-2019,North Macedonia,MK,MKD,MKD,0,poverty,Poverty risk rate,percentage points,42.666666666666664,,56.86666666666667,14.200000000000003,
+2014,2014-2019,Norway,NO,NOR,NOR,0,poverty,Poverty risk rate,percentage points,13.866666666666667,16.233333333333334,28.46666666666667,14.600000000000001,
+2014,2014-2019,Poland,PL,POL,POL,0,poverty,Poverty risk rate,percentage points,24.433333333333334,,10.733333333333334,-13.7,
+2014,2014-2019,Portugal,PT,PRT,PRT,0,poverty,Poverty risk rate,percentage points,27.266666666666666,28.8,50.699999999999996,23.43333333333333,
+2014,2014-2019,Serbia,RS,SRB,SRB,0,poverty,Poverty risk rate,percentage points,43.43333333333334,64.06666666666666,46.800000000000004,3.366666666666667,
+2014,2014-2019,Slovenia,SI,SVN,SVN,0,poverty,Poverty risk rate,percentage points,20.1,35.5,52.53333333333333,32.43333333333333,
+2014,2014-2019,Spain,ES,ESP,ESP,0,poverty,Poverty risk rate,percentage points,27.833333333333332,48.6,60.4,32.56666666666666,
+2014,2014-2019,Sweden,SE,SWE,SWE,0,poverty,Poverty risk rate,percentage points,15.833333333333334,31.266666666666666,54.5,38.666666666666664,
+2014,2014-2019,Switzerland,CH,CHE,CHE,0,poverty,Poverty risk rate,percentage points,12.966666666666667,16.766666666666666,22.7,9.733333333333333,
+2014,2014-2019,Turkey,TR,TUR,TUR,0,poverty,Poverty risk rate,percentage points,38.86666666666667,9.833333333333334,33.333333333333336,-5.533333333333331,
+2014,2014-2019,United Kingdom,UK,GBR,GBR,0,poverty,Poverty risk rate,percentage points,22.166666666666668,22.400000000000002,34.666666666666664,12.499999999999996,
+2025,,Austria,AT,AUT,AUT,0,temporary_contract,Temporary contract rate,percentage points,10.190000000000001,12.055555555555555,12.4375,2.2474999999999987,
+2025,,Belgium,BE,BEL,BEL,0,temporary_contract,Temporary contract rate,percentage points,14.98,17.630000000000003,30.2875,15.307500000000001,
+2025,,Croatia,HR,HRV,HRV,0,temporary_contract,Temporary contract rate,percentage points,10.98,,40.75,29.77,
+2025,,Cyprus,CY,CYP,CYP,0,temporary_contract,Temporary contract rate,percentage points,9.55,7.975,47.239999999999995,37.69,
+2025,,Czechia,CZ,CZE,CZE,0,temporary_contract,Temporary contract rate,percentage points,10.440000000000001,14.433333333333332,20.95,10.509999999999998,
+2020,2020-2024,Denmark,DK,DNK,DNK,0,temporary_contract,Temporary contract rate,percentage points,12.8,15.566666666666668,19.3125,6.512499999999999,
+2025,,Estonia,EE,EST,EST,0,temporary_contract,Temporary contract rate,percentage points,4.933333333333334,,3.9,-1.0333333333333337,
+2025,,Finland,FI,FIN,FIN,0,temporary_contract,Temporary contract rate,percentage points,16.66,17.5,26.542857142857144,9.882857142857144,
+2025,,France,FR,FRA,FRA,0,temporary_contract,Temporary contract rate,percentage points,18.86,22.33,28.330000000000002,9.470000000000002,
+2025,,Germany,DE,DEU,DEU,0,temporary_contract,Temporary contract rate,percentage points,14.39,14.319999999999999,22.34,7.949999999999999,
+2025,,Greece,EL,GRC,GRC,0,temporary_contract,Temporary contract rate,percentage points,11.14,14.6,23.65,12.509999999999998,
+2024,2020-2024,Iceland,IS,ISL,ISL,0,temporary_contract,Temporary contract rate,percentage points,12.440000000000001,5.925,8.766666666666666,-3.6733333333333356,
+2025,,Ireland,IE,IRL,IRL,0,temporary_contract,Temporary contract rate,percentage points,8.98,4.225,9.671428571428573,0.6914285714285722,
+2025,,Italy,IT,ITA,ITA,0,temporary_contract,Temporary contract rate,percentage points,18.15,21.23,23.38,5.23,
+2024,2020-2024,Latvia,LV,LVA,LVA,0,temporary_contract,Temporary contract rate,percentage points,2.77,,2.966666666666667,0.19666666666666677,
+2024,2020-2024,Luxembourg,LU,LUX,LUX,0,temporary_contract,Temporary contract rate,percentage points,14.971428571428572,15.7125,13.700000000000001,-1.2714285714285705,
+2020,2020-2024,Malta,MT,MLT,MLT,0,temporary_contract,Temporary contract rate,percentage points,6.01,22.771428571428572,18.228571428571428,12.218571428571428,
+2020,2020-2024,Montenegro,ME,MNE,MNE,0,temporary_contract,Temporary contract rate,percentage points,34.2,,42.53333333333333,8.333333333333329,
+2025,,Netherlands,NL,NLD,NLD,0,temporary_contract,Temporary contract rate,percentage points,26.48,33.43,46.32,19.84,
+2025,,North Macedonia,MK,MKD,MKD,0,temporary_contract,Temporary contract rate,percentage points,22.28,18.2,28.139999999999997,5.859999999999996,
+2025,,Norway,NO,NOR,NOR,0,temporary_contract,Temporary contract rate,percentage points,8.870000000000001,10.0,20.12857142857143,11.258571428571429,
+2025,,Poland,PL,POL,POL,0,temporary_contract,Temporary contract rate,percentage points,20.3,,44.425000000000004,24.125000000000004,
+2025,,Portugal,PT,PRT,PRT,0,temporary_contract,Temporary contract rate,percentage points,18.45,22.05,35.54,17.09,
+2025,,Serbia,RS,SRB,SRB,0,temporary_contract,Temporary contract rate,percentage points,23.05,,21.53333333333333,-1.5166666666666693,
+2025,,Slovenia,SI,SVN,SVN,0,temporary_contract,Temporary contract rate,percentage points,15.1,,17.8,2.700000000000001,
+2025,,Spain,ES,ESP,ESP,0,temporary_contract,Temporary contract rate,percentage points,18.54,13.41,26.3,7.760000000000002,
+2025,,Sweden,SE,SWE,SWE,0,temporary_contract,Temporary contract rate,percentage points,15.709999999999999,18.32857142857143,30.6625,14.952500000000002,
+2025,,Switzerland,CH,CHE,CHE,0,temporary_contract,Temporary contract rate,percentage points,16.029999999999998,15.459999999999999,21.919999999999998,5.890000000000001,
+2019,2014-2019,United Kingdom,UK,GBR,GBR,0,temporary_contract,Temporary contract rate,percentage points,5.57,7.2299999999999995,10.09,4.52,
