@@ -12,8 +12,6 @@ venv/
 data/raw/ipums_acs/usa_00001.csv
 data/raw/ipums_acs/usa_00001.csv.gz
 data/raw/ipums_acs/usa_2014_plus.csv
-
-# Frontend dependencies
-frontend/node_modules/
-node_modules/
+data/raw/ipums_acs/usa_2014_plus.parquet
 data/raw/eurostat_lfs/lfsa_ergaedn.csv
+*.parquet
