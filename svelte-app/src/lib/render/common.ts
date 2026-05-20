@@ -3,7 +3,7 @@ import type { CsvRow } from "../data/csv";
 export interface Selection {
   topic: string;
   period: string;
-  place: string;
+  places: string[];
   sex: string;
   age: string;
 }
@@ -15,12 +15,38 @@ export interface RenderResult {
   breakdownNote?: string;
 }
 
+export interface ThemeColors {
+  paperBg: string;
+  plotBg: string;
+  textColor: string;
+  gridColor: string;
+  lineColor: string;
+  accent: string;
+}
+
+export function themeColors(isDark: boolean): ThemeColors {
+  return {
+    paperBg: isDark ? "#1e293b" : "white",
+    plotBg: isDark ? "#1e293b" : "white",
+    textColor: isDark ? "#f8fafc" : "#18212f",
+    gridColor: isDark ? "#334155" : "#e2e8f0",
+    lineColor: isDark ? "#475569" : "#cbd5e1",
+    accent: isDark ? "#60BBEE" : "#0077BB"
+  };
+}
+
+// Colorblind-safe palette for up to 3 selected places (plus national)
+export const PLACE_COLORS = ["#0077BB", "#EE7733", "#009988"];
+export const PLACE_COLORS_DARK = ["#60BBEE", "#EE7733", "#33BBAA"];
+
 export function blankPlot(target: HTMLElement, title: string, message: string): void {
+  const isDark = typeof document !== "undefined" && document.documentElement.classList.contains("dark");
+  const colors = themeColors(isDark);
   window.Plotly.newPlot(
     target,
     [],
     {
-      title,
+      title: { text: title, font: { color: colors.textColor } },
       annotations: [
         {
           text: message,
@@ -29,28 +55,42 @@ export function blankPlot(target: HTMLElement, title: string, message: string): 
           x: 0.5,
           y: 0.5,
           showarrow: false,
-          font: { color: "#5d6b7c" }
+          font: { color: colors.textColor }
         }
       ],
       xaxis: { visible: false },
       yaxis: { visible: false },
       margin: { l: 20, r: 20, t: 45, b: 20 },
-      paper_bgcolor: "white",
-      plot_bgcolor: "white"
+      paper_bgcolor: colors.paperBg,
+      plot_bgcolor: colors.plotBg
     },
     { responsive: true }
   );
 }
 
 export function trendLayout(title: string, yTitle: string): Record<string, unknown> {
+  const isDark = typeof document !== "undefined" && document.documentElement.classList.contains("dark");
+  const colors = themeColors(isDark);
   return {
-    title,
-    yaxis: { title: yTitle, zeroline: true },
-    xaxis: { title: "Year", dtick: 1 },
+    title: { text: title, font: { color: colors.textColor } },
+    yaxis: { 
+      title: { text: yTitle, font: { color: colors.textColor } }, 
+      tickfont: { color: colors.textColor },
+      gridcolor: colors.gridColor,
+      zerolinecolor: colors.lineColor,
+      zeroline: true 
+    },
+    xaxis: { 
+      title: { text: "Year", font: { color: colors.textColor } }, 
+      tickfont: { color: colors.textColor },
+      gridcolor: colors.gridColor,
+      linecolor: colors.lineColor,
+      dtick: 1 
+    },
     margin: { l: 60, r: 20, t: 45, b: 50 },
-    paper_bgcolor: "white",
-    plot_bgcolor: "white",
-    legend: { orientation: "h", y: -0.22 }
+    paper_bgcolor: colors.paperBg,
+    plot_bgcolor: colors.plotBg,
+    legend: { orientation: "h", y: -0.22, font: { color: colors.textColor } }
   };
 }
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  export let variant: "map" | "ranking" | "trend" | "breakdown";
+  export let variant: "map" | "ranking" | "trend" | "breakdown" | "radar";
   export let note: string = "";
   export let full: boolean = false;
   export let el: HTMLDivElement | null = null;

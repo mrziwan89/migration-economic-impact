@@ -2,7 +2,7 @@ import type { CsvRow } from "../data/csv";
 import type { LoadedData } from "../data/load";
 import type { EurostatTopic } from "../data/topics";
 import { EU_TREND_GROUPS } from "../data/lookups";
-import { blankPlot, mapScale, trendLayout } from "./common";
+import { blankPlot, mapScale, trendLayout, themeColors, PLACE_COLORS, PLACE_COLORS_DARK } from "./common";
 
 export function eurostatRowsForMap(
   cfg: EurostatTopic,
@@ -66,11 +66,13 @@ export function renderEurostatOutcomeMap(
   target: HTMLElement,
   cfg: EurostatTopic,
   data: LoadedData,
-  period: string
+  period: string,
+  isDark: boolean
 ): { rows: CsvRow[]; mapNote: string; rankingNote: string } {
   const rows = eurostatOutcomeRowsForSelection(cfg, data, period);
   const values = rows.map((row) => row[cfg.value] as number | null);
   const scale = mapScale(values, Boolean(cfg.isGap));
+  const colors = themeColors(isDark);
   const hovertemplate =
     cfg.metricKey === "incarceration"
       ? "<b>%{text}</b><br>Ratio: %{z:.2f}x<br>Foreign-citizen share: %{customdata[2]:.1f}%<br>National-citizen share: %{customdata[0]:.1f}%<br>Coverage: %{customdata[3]}<extra></extra>"
@@ -98,24 +100,25 @@ export function renderEurostatOutcomeMap(
           reversescale: Boolean(cfg.reversescale),
           zmin: scale.zmin,
           zmax: scale.zmax,
-          marker: { line: { color: "white", width: 0.6 } },
-          colorbar: { title: cfg.units },
+          marker: { line: { color: colors.lineColor, width: 0.6 } },
+          colorbar: { title: cfg.units, tickfont: { color: colors.textColor } },
           hovertemplate
         }
       ],
       {
-        title: `${cfg.title} - ${period}`,
+        title: { text: `${cfg.title} - ${period}`, font: { color: colors.textColor } },
         geo: {
           scope: "europe",
           projection: { type: "natural earth" },
           showland: true,
-          landcolor: "#eef2f4",
+          landcolor: isDark ? "#1e293b" : "#eef2f4",
           showcountries: true,
-          countrycolor: "white"
+          countrycolor: colors.lineColor,
+          bgcolor: colors.paperBg
         },
         margin: { l: 0, r: 0, t: 45, b: 0 },
-        paper_bgcolor: "white",
-        plot_bgcolor: "white"
+        paper_bgcolor: colors.paperBg,
+        plot_bgcolor: colors.plotBg
       },
       { responsive: true }
     );
@@ -135,21 +138,40 @@ export function renderEurostatOutcomeMap(
   };
 }
 
-export function renderEurostatOutcomeRanking(target: HTMLElement, cfg: EurostatTopic, rows: CsvRow[]): void {
-  const rankingRows = rows
+export function renderEurostatOutcomeRanking(
+  target: HTMLElement,
+  cfg: EurostatTopic,
+  rows: CsvRow[],
+  selectedPlaces: Set<string>,
+  isDark: boolean
+): void {
+  const allRows = rows
     .filter((row) => row[cfg.value] != null)
     .sort((a, b) =>
       cfg.rankDirection === "ascending"
         ? (a[cfg.value] as number) - (b[cfg.value] as number)
         : (b[cfg.value] as number) - (a[cfg.value] as number)
-    )
-    .slice(0, 12)
-    .reverse();
+    );
+
+  const topRows = allRows.slice(0, 12);
+  const extraRows = selectedPlaces.size > 0
+    ? allRows.filter(row => selectedPlaces.has(row.country_key as string) && !topRows.includes(row)).slice(0, 5)
+    : [];
+  const rankingRows = [...topRows, ...extraRows].reverse();
 
   if (!rankingRows.length) {
     blankPlot(target, "Country ranking", "No ranking data available.");
     return;
   }
+
+  const colors = themeColors(isDark);
+  const hasSelection = selectedPlaces.size > 0;
+  const barColors = rankingRows.map(row =>
+    selectedPlaces.has(row.country_key as string) ? colors.accent : (hasSelection ? colors.lineColor : colors.accent)
+  );
+  const opacities = rankingRows.map(row =>
+    hasSelection ? (selectedPlaces.has(row.country_key as string) ? 1 : 0.32) : 1
+  );
 
   window.Plotly.newPlot(
     target,
@@ -160,7 +182,7 @@ export function renderEurostatOutcomeRanking(target: HTMLElement, cfg: EurostatT
         y: rankingRows.map((row) => row.country),
         x: rankingRows.map((row) => row[cfg.value]),
         customdata: rankingRows.map((row) => outcomeCoverageLabel(row)),
-        marker: { color: "#116466" },
+        marker: { color: barColors, opacity: opacities },
         hovertemplate:
           cfg.units === "ratio"
             ? "<b>%{y}</b><br>%{x:.2f}x<br>%{customdata}<extra></extra>"
@@ -168,12 +190,24 @@ export function renderEurostatOutcomeRanking(target: HTMLElement, cfg: EurostatT
       }
     ],
     {
-      title: `${cfg.rankDirection === "ascending" ? "Largest disadvantages" : "Highest countries"} - ${cfg.title}`,
-      xaxis: { title: cfg.units, zeroline: true },
-      yaxis: { title: "" },
+      title: { 
+        text: `${cfg.rankDirection === "ascending" ? "Largest disadvantages" : "Highest countries"} - ${cfg.title}`, 
+        font: { color: colors.textColor } 
+      },
+      xaxis: { 
+        title: { text: cfg.units, font: { color: colors.textColor } }, 
+        tickfont: { color: colors.textColor },
+        gridcolor: colors.gridColor,
+        zerolinecolor: colors.lineColor,
+        zeroline: true 
+      },
+      yaxis: { 
+        title: "", 
+        tickfont: { color: colors.textColor } 
+      },
       margin: { l: 135, r: 20, t: 45, b: 50 },
-      paper_bgcolor: "white",
-      plot_bgcolor: "white"
+      paper_bgcolor: colors.paperBg,
+      plot_bgcolor: colors.plotBg
     },
     { responsive: true }
   );
@@ -183,36 +217,45 @@ export function renderEurostatOutcomeTrend(
   target: HTMLElement,
   cfg: EurostatTopic,
   data: LoadedData,
-  place: string
+  places: string[],
+  isDark: boolean
 ): { trendNote: string } {
-  const selectedRows = data.eurostat.outcomeYear
-    .filter((row) => row.country_key === place && row.metric_key === cfg.metricKey && row[cfg.value] != null)
-    .sort((a, b) => Number(a.YEAR) - Number(b.YEAR));
+  const palette = isDark ? PLACE_COLORS_DARK : PLACE_COLORS;
+  const colors = themeColors(isDark);
+  const traces: Array<Record<string, unknown>> = [];
+
+  // EU aggregate as reference
   const euRows = data.eurostat.outcomeYear
     .filter((row) => row.country_code === "EU" && row.metric_key === cfg.metricKey && row[cfg.value] != null)
     .sort((a, b) => Number(a.YEAR) - Number(b.YEAR));
-  const traces: Array<Record<string, unknown>> = [];
-
-  if (selectedRows.length) {
-    traces.push({
-      type: "scatter",
-      mode: "lines+markers",
-      name: selectedRows[0].country,
-      x: selectedRows.map((row) => row.YEAR),
-      y: selectedRows.map((row) => row[cfg.value]),
-      line: { color: "#116466" }
-    });
-  }
-  if (place !== "EU" && euRows.length) {
+  
+  if (euRows.length) {
     traces.push({
       type: "scatter",
       mode: "lines+markers",
       name: "EU aggregate",
       x: euRows.map((row) => row.YEAR),
       y: euRows.map((row) => row[cfg.value]),
-      line: { dash: "dot", color: "#c44536" }
+      line: { color: colors.lineColor, width: 2 }
     });
   }
+
+  places.forEach((place, i) => {
+    if (place === "EU") return; // already shown
+    const selectedRows = data.eurostat.outcomeYear
+      .filter((row) => row.country_key === place && row.metric_key === cfg.metricKey && row[cfg.value] != null)
+      .sort((a, b) => Number(a.YEAR) - Number(b.YEAR));
+    if (selectedRows.length) {
+      traces.push({
+        type: "scatter",
+        mode: "lines+markers",
+        name: selectedRows[0].country,
+        x: selectedRows.map((row) => row.YEAR),
+        y: selectedRows.map((row) => row[cfg.value]),
+        line: { color: palette[i % palette.length], width: 2 }
+      });
+    }
+  });
 
   if (!traces.length) {
     blankPlot(target, `${cfg.title} over time`, "No trend data available for the selected country.");
@@ -229,9 +272,14 @@ export function renderEurostatOutcomeBreakdown(
   cfg: EurostatTopic,
   data: LoadedData,
   period: string,
-  place: string
+  places: string[],
+  isDark: boolean
 ): { breakdownNote: string } {
-  const row = eurostatOutcomeRowsForSelection(cfg, data, period, true).find((item) => item.country_key === place);
+  const palette = isDark ? PLACE_COLORS_DARK : PLACE_COLORS;
+  const colors = themeColors(isDark);
+  const primaryPlace = places[0] || "";
+  const row = eurostatOutcomeRowsForSelection(cfg, data, period, true).find((item) => item.country_key === primaryPlace);
+  
   if (!row) {
     blankPlot(target, "Selected country detail", "No detail data available.");
     return { breakdownNote: "" };
@@ -256,19 +304,26 @@ export function renderEurostatOutcomeBreakdown(
         y: values,
         marker: {
           color: labels.map((label) =>
-            label.includes("Native") || label.includes("National") ? "#6f7f8f" : "#116466"
+            label.includes("Native") || label.includes("National") ? colors.lineColor : palette[0]
           )
         },
         hovertemplate: "%{x}<br>%{y:.1f}%<extra></extra>"
       }
     ],
     {
-      title: `${cfg.title} components - ${row.country}, ${coverage}`,
-      yaxis: { title: cfg.componentUnit },
-      xaxis: { title: "" },
+      title: { text: `${cfg.title} components - ${row.country}, ${coverage}`, font: { color: colors.textColor } },
+      yaxis: { 
+        title: { text: cfg.componentUnit, font: { color: colors.textColor } }, 
+        tickfont: { color: colors.textColor },
+        gridcolor: colors.gridColor
+      },
+      xaxis: { 
+        title: "", 
+        tickfont: { color: colors.textColor } 
+      },
       margin: { l: 60, r: 20, t: 45, b: 80 },
-      paper_bgcolor: "white",
-      plot_bgcolor: "white"
+      paper_bgcolor: colors.paperBg,
+      plot_bgcolor: colors.plotBg
     },
     { responsive: true }
   );
@@ -287,11 +342,13 @@ export function renderEurostatEmploymentMap(
   data: LoadedData,
   period: string,
   sex: string,
-  age: string
+  age: string,
+  isDark: boolean
 ): { rows: CsvRow[]; mapNote: string; rankingNote: string } {
   const rows = eurostatRowsForMap(cfg, data, period, sex, age);
   const values = rows.map((row) => row[cfg.value] as number | null);
   const scale = mapScale(values, cfg.kind === "gap");
+  const colors = themeColors(isDark);
 
   if (!rows.length) {
     blankPlot(target, cfg.title, "No country data available for this selection.");
@@ -314,8 +371,8 @@ export function renderEurostatEmploymentMap(
           reversescale: cfg.kind === "gap",
           zmin: scale.zmin,
           zmax: scale.zmax,
-          marker: { line: { color: "white", width: 0.6 } },
-          colorbar: { title: cfg.units },
+          marker: { line: { color: colors.lineColor, width: 0.6 } },
+          colorbar: { title: cfg.units, tickfont: { color: colors.textColor } },
           hovertemplate:
             cfg.kind === "gap"
               ? "<b>%{text}</b><br>Gap: %{z:.1f} pp<br>%{customdata[2]}: %{customdata[0]:.1f}%<br>Reporting-country citizens: %{customdata[1]:.1f}%<extra></extra>"
@@ -323,18 +380,19 @@ export function renderEurostatEmploymentMap(
         }
       ],
       {
-        title: `${cfg.title} - ${period}`,
+        title: { text: `${cfg.title} - ${period}`, font: { color: colors.textColor } },
         geo: {
           scope: "europe",
           projection: { type: "natural earth" },
           showland: true,
-          landcolor: "#eef2f4",
+          landcolor: isDark ? "#1e293b" : "#eef2f4",
           showcountries: true,
-          countrycolor: "white"
+          countrycolor: colors.lineColor,
+          bgcolor: colors.paperBg
         },
         margin: { l: 0, r: 0, t: 45, b: 0 },
-        paper_bgcolor: "white",
-        plot_bgcolor: "white"
+        paper_bgcolor: colors.paperBg,
+        plot_bgcolor: colors.plotBg
       },
       { responsive: true }
     );
@@ -349,17 +407,36 @@ export function renderEurostatEmploymentMap(
   };
 }
 
-export function renderEurostatEmploymentRanking(target: HTMLElement, cfg: EurostatTopic, rows: CsvRow[]): void {
-  const rankingRows = rows
+export function renderEurostatEmploymentRanking(
+  target: HTMLElement,
+  cfg: EurostatTopic,
+  rows: CsvRow[],
+  selectedPlaces: Set<string>,
+  isDark: boolean
+): void {
+  const allRows = rows
     .filter((row) => row[cfg.value] != null)
-    .sort((a, b) => (b[cfg.value] as number) - (a[cfg.value] as number))
-    .slice(0, 12)
-    .reverse();
+    .sort((a, b) => (b[cfg.value] as number) - (a[cfg.value] as number));
+
+  const topRows = allRows.slice(0, 12);
+  const extraRows = selectedPlaces.size > 0
+    ? allRows.filter(row => selectedPlaces.has(row.country_key as string) && !topRows.includes(row)).slice(0, 5)
+    : [];
+  const rankingRows = [...topRows, ...extraRows].reverse();
 
   if (!rankingRows.length) {
     blankPlot(target, "Country ranking", "No ranking data available.");
     return;
   }
+
+  const colors = themeColors(isDark);
+  const hasSelection = selectedPlaces.size > 0;
+  const barColors = rankingRows.map(row =>
+    selectedPlaces.has(row.country_key as string) ? colors.accent : (hasSelection ? colors.lineColor : colors.accent)
+  );
+  const opacities = rankingRows.map(row =>
+    hasSelection ? (selectedPlaces.has(row.country_key as string) ? 1 : 0.32) : 1
+  );
 
   window.Plotly.newPlot(
     target,
@@ -369,17 +446,26 @@ export function renderEurostatEmploymentRanking(target: HTMLElement, cfg: Eurost
         orientation: "h",
         y: rankingRows.map((row) => row.country),
         x: rankingRows.map((row) => row[cfg.value]),
-        marker: { color: "#116466" },
+        marker: { color: barColors, opacity: opacities },
         hovertemplate: "<b>%{y}</b><br>%{x:.1f} " + cfg.units + "<extra></extra>"
       }
     ],
     {
-      title: `Highest countries - ${cfg.title}`,
-      xaxis: { title: cfg.units, zeroline: true },
-      yaxis: { title: "" },
+      title: { text: `Highest countries - ${cfg.title}`, font: { color: colors.textColor } },
+      xaxis: { 
+        title: { text: cfg.units, font: { color: colors.textColor } }, 
+        tickfont: { color: colors.textColor },
+        gridcolor: colors.gridColor,
+        zerolinecolor: colors.lineColor,
+        zeroline: true 
+      },
+      yaxis: { 
+        title: "", 
+        tickfont: { color: colors.textColor } 
+      },
       margin: { l: 135, r: 20, t: 45, b: 50 },
-      paper_bgcolor: "white",
-      plot_bgcolor: "white"
+      paper_bgcolor: colors.paperBg,
+      plot_bgcolor: colors.plotBg
     },
     { responsive: true }
   );
@@ -389,22 +475,17 @@ export function renderEurostatEmploymentTrend(
   target: HTMLElement,
   cfg: EurostatTopic,
   data: LoadedData,
-  place: string,
+  places: string[],
   sex: string,
-  age: string
+  age: string,
+  isDark: boolean
 ): { trendNote: string } {
+  const palette = isDark ? PLACE_COLORS_DARK : PLACE_COLORS;
+  const colors = themeColors(isDark);
   const traces: Array<Record<string, unknown>> = [];
 
   if (cfg.kind === "gap") {
-    const selectedRows = data.eurostat.gapYear
-      .filter(
-        (row) =>
-          row.country_key === place &&
-          row.sex === sex &&
-          row.age === age &&
-          row.comparison_group === cfg.comparisonGroup
-      )
-      .sort((a, b) => Number(a.YEAR) - Number(b.YEAR));
+    // EU27 aggregate as reference
     const euRows = data.eurostat.gapYear
       .filter(
         (row) =>
@@ -414,47 +495,61 @@ export function renderEurostatEmploymentTrend(
           row.comparison_group === cfg.comparisonGroup
       )
       .sort((a, b) => Number(a.YEAR) - Number(b.YEAR));
-
-    if (selectedRows.length) {
-      traces.push({
-        type: "scatter",
-        mode: "lines+markers",
-        name: selectedRows[0].country,
-        x: selectedRows.map((row) => row.YEAR),
-        y: selectedRows.map((row) => row.employment_rate_gap_pp),
-        line: { color: "#116466" }
-      });
-    }
-    if (place !== "EU27_2020" && euRows.length) {
+    if (euRows.length) {
       traces.push({
         type: "scatter",
         mode: "lines+markers",
         name: "EU27 aggregate",
         x: euRows.map((row) => row.YEAR),
         y: euRows.map((row) => row.employment_rate_gap_pp),
-        line: { dash: "dot", color: "#c44536" }
+        line: { color: colors.lineColor, width: 2 }
       });
     }
-  } else {
-    EU_TREND_GROUPS.forEach((group) => {
-      const groupRows = data.eurostat.countryYear
+
+    places.forEach((place, i) => {
+      if (place === "EU27_2020") return;
+      const selectedRows = data.eurostat.gapYear
         .filter(
           (row) =>
             row.country_key === place &&
             row.sex === sex &&
             row.age === age &&
-            row.citizen_group === group
+            row.comparison_group === cfg.comparisonGroup
         )
         .sort((a, b) => Number(a.YEAR) - Number(b.YEAR));
-      if (!groupRows.length) {
-        return;
+      if (selectedRows.length) {
+        traces.push({
+          type: "scatter",
+          mode: "lines+markers",
+          name: selectedRows[0].country,
+          x: selectedRows.map((row) => row.YEAR),
+          y: selectedRows.map((row) => row.employment_rate_gap_pp),
+          line: { color: palette[i % palette.length], width: 2 }
+        });
       }
-      traces.push({
-        type: "scatter",
-        mode: "lines+markers",
-        name: groupRows[0].citizen_label,
-        x: groupRows.map((row) => row.YEAR),
-        y: groupRows.map((row) => row.employment_rate_pct)
+    });
+  } else {
+    // For rate topics, show citizen groups for each place
+    places.forEach((place, placeIdx) => {
+      EU_TREND_GROUPS.forEach((group) => {
+        const groupRows = data.eurostat.countryYear
+          .filter(
+            (row) =>
+              row.country_key === place &&
+              row.sex === sex &&
+              row.age === age &&
+              row.citizen_group === group
+          )
+          .sort((a, b) => Number(a.YEAR) - Number(b.YEAR));
+        if (!groupRows.length) return;
+        traces.push({
+          type: "scatter",
+          mode: "lines+markers",
+          name: `${place} ${groupRows[0].citizen_label}`,
+          x: groupRows.map((row) => row.YEAR),
+          y: groupRows.map((row) => row.employment_rate_pct),
+          line: { color: palette[placeIdx % palette.length] }
+        });
       });
     });
   }
@@ -470,35 +565,26 @@ export function renderEurostatEmploymentTrend(
   return {
     trendNote:
       cfg.kind === "gap"
-        ? "Trend compares the selected country with the EU27 aggregate when both are available."
-        : "Trend shows available citizenship groups for the selected country."
+        ? "Trend compares the selected countries with the EU27 aggregate."
+        : "Trend shows available citizenship groups for the selected countries."
   };
 }
-
-const CITIZEN_ORDER_LOCAL = [
-  "total",
-  "reporting_country",
-  "foreign_country",
-  "non_eu",
-  "eu_mobile",
-  "eu27_total",
-  "stateless",
-  "no_response"
-];
 
 export function renderEurostatEmploymentBreakdown(
   target: HTMLElement,
   data: LoadedData,
   period: string,
-  place: string,
+  places: string[],
   sex: string,
-  age: string
+  age: string,
+  isDark: boolean
 ): { breakdownNote: string } {
+  const primaryPlace = places[0] || "";
   const rows = data.eurostat.countryPeriod
     .filter(
       (row) =>
         row.period === period &&
-        row.country_key === place &&
+        row.country_key === primaryPlace &&
         row.sex === sex &&
         row.age === age &&
         row.employment_rate_pct != null
@@ -514,6 +600,9 @@ export function renderEurostatEmploymentBreakdown(
     return { breakdownNote: "" };
   }
 
+  const colors = themeColors(isDark);
+  const palette = isDark ? PLACE_COLORS_DARK : PLACE_COLORS;
+
   window.Plotly.newPlot(
     target,
     [
@@ -522,18 +611,25 @@ export function renderEurostatEmploymentBreakdown(
         x: rows.map((row) => row.citizen_label),
         y: rows.map((row) => row.employment_rate_pct),
         marker: {
-          color: rows.map((row) => (row.citizen_group === "reporting_country" ? "#6f7f8f" : "#116466"))
+          color: rows.map((row) => (row.citizen_group === "reporting_country" ? colors.lineColor : palette[0]))
         },
         hovertemplate: "%{x}<br>Employment rate: %{y:.1f}%<extra></extra>"
       }
     ],
     {
-      title: `Employment rate by citizenship - ${rows[0].country}, ${period}`,
-      yaxis: { title: "% employed" },
-      xaxis: { title: "" },
+      title: { text: `Employment rate by citizenship - ${rows[0].country}, ${period}`, font: { color: colors.textColor } },
+      yaxis: { 
+        title: { text: "% employed", font: { color: colors.textColor } }, 
+        tickfont: { color: colors.textColor },
+        gridcolor: colors.gridColor
+      },
+      xaxis: { 
+        title: "", 
+        tickfont: { color: colors.textColor } 
+      },
       margin: { l: 60, r: 20, t: 45, b: 130 },
-      paper_bgcolor: "white",
-      plot_bgcolor: "white"
+      paper_bgcolor: colors.paperBg,
+      plot_bgcolor: colors.plotBg
     },
     { responsive: true }
   );

@@ -1,17 +1,19 @@
 import type { CsvRow } from "../data/csv";
 import type { LoadedData } from "../data/load";
 import type { UsaTopic } from "../data/topics";
-import { aggregateNational, blankPlot, mapScale, trendLayout } from "./common";
+import { aggregateNational, blankPlot, mapScale, trendLayout, themeColors, PLACE_COLORS, PLACE_COLORS_DARK } from "./common";
 
 export function renderUsaMap(
   target: HTMLElement,
   cfg: UsaTopic,
   data: LoadedData,
-  period: string
+  period: string,
+  isDark: boolean
 ): { mapRows: CsvRow[]; mapNote: string; rankingNote: string } {
   const mapRows = data.usa[cfg.mapKey].filter((row) => row.period === period && row.state);
   const values = mapRows.map((row) => row[cfg.value] as number | null);
   const scale = mapScale(values, cfg.isGap);
+  const colors = themeColors(isDark);
 
   if (!mapRows.length) {
     blankPlot(target, cfg.title, "No state data available for this selection.");
@@ -30,8 +32,8 @@ export function renderUsaMap(
           reversescale: cfg.isGap,
           zmin: scale.zmin,
           zmax: scale.zmax,
-          marker: { line: { color: "white", width: 0.7 } },
-          colorbar: { title: cfg.units },
+          marker: { line: { color: colors.lineColor, width: 0.7 } },
+          colorbar: { title: cfg.units, tickfont: { color: colors.textColor } },
           hovertemplate: cfg.isGap
             ? "<b>%{text}</b><br>Gap: %{z:.1f} " +
               cfg.units +
@@ -40,11 +42,16 @@ export function renderUsaMap(
         }
       ],
       {
-        title: `${cfg.title} - ${period}`,
-        geo: { scope: "usa", projection: { type: "albers usa" } },
+        title: { text: `${cfg.title} - ${period}`, font: { color: colors.textColor } },
+        geo: { 
+          scope: "usa", 
+          projection: { type: "albers usa" },
+          bgcolor: colors.paperBg,
+          lakecolor: colors.paperBg
+        },
         margin: { l: 0, r: 0, t: 45, b: 0 },
-        paper_bgcolor: "white",
-        plot_bgcolor: "white"
+        paper_bgcolor: colors.paperBg,
+        plot_bgcolor: colors.plotBg
       },
       { responsive: true }
     );
@@ -59,17 +66,38 @@ export function renderUsaMap(
   };
 }
 
-export function renderUsaRanking(target: HTMLElement, cfg: UsaTopic, rows: CsvRow[]): void {
-  const rankingRows = rows
+export function renderUsaRanking(
+  target: HTMLElement,
+  cfg: UsaTopic,
+  rows: CsvRow[],
+  selectedPlaces: Set<string>,
+  isDark: boolean
+): void {
+  const allRows = rows
     .filter((row) => row[cfg.value] != null)
-    .sort((a, b) => (b[cfg.value] as number) - (a[cfg.value] as number))
-    .slice(0, 10)
-    .reverse();
+    .sort((a, b) => (b[cfg.value] as number) - (a[cfg.value] as number));
+  
+  const topRows = allRows.slice(0, 10);
+  
+  // Ensure selected places appear in the ranking even if not in top 10
+  const extraRows = selectedPlaces.size > 0
+    ? allRows.filter(row => selectedPlaces.has(row.state as string) && !topRows.includes(row)).slice(0, 5)
+    : [];
+  const rankingRows = [...topRows, ...extraRows].reverse();
 
   if (!rankingRows.length) {
     blankPlot(target, "State ranking", "No ranking data available.");
     return;
   }
+
+  const colors = themeColors(isDark);
+  const hasSelection = selectedPlaces.size > 0;
+  const barColors = rankingRows.map(row => 
+    selectedPlaces.has(row.state as string) ? colors.accent : (hasSelection ? colors.lineColor : colors.accent)
+  );
+  const opacities = rankingRows.map(row =>
+    hasSelection ? (selectedPlaces.has(row.state as string) ? 1 : 0.32) : 1
+  );
 
   window.Plotly.newPlot(
     target,
@@ -80,17 +108,26 @@ export function renderUsaRanking(target: HTMLElement, cfg: UsaTopic, rows: CsvRo
         y: rankingRows.map((row) => row.state),
         x: rankingRows.map((row) => row[cfg.value]),
         text: rankingRows.map((row) => row.state_name),
-        marker: { color: "#116466" },
+        marker: { color: barColors, opacity: opacities },
         hovertemplate: "<b>%{text}</b><br>%{x:.1f} " + cfg.units + "<extra></extra>"
       }
     ],
     {
-      title: `Highest states - ${cfg.title}`,
-      xaxis: { title: cfg.units, zeroline: true },
-      yaxis: { title: "" },
+      title: { text: `Highest states - ${cfg.title}`, font: { color: colors.textColor } },
+      xaxis: { 
+        title: { text: cfg.units, font: { color: colors.textColor } }, 
+        tickfont: { color: colors.textColor },
+        gridcolor: colors.gridColor,
+        zerolinecolor: colors.lineColor,
+        zeroline: true 
+      },
+      yaxis: { 
+        title: "", 
+        tickfont: { color: colors.textColor } 
+      },
       margin: { l: 60, r: 20, t: 45, b: 50 },
-      paper_bgcolor: "white",
-      plot_bgcolor: "white"
+      paper_bgcolor: colors.paperBg,
+      plot_bgcolor: colors.plotBg
     },
     { responsive: true }
   );
@@ -101,9 +138,12 @@ export function renderUsaTrend(
   cfg: UsaTopic,
   data: LoadedData,
   topic: string,
-  place: string
+  places: string[],
+  isDark: boolean
 ): { trendNote: string } {
   const rows = data.usa[cfg.trendKey];
+  const colors = themeColors(isDark);
+  const palette = isDark ? PLACE_COLORS_DARK : PLACE_COLORS;
 
   if (!rows.length) {
     blankPlot(target, cfg.title, "No trend data available.");
@@ -112,32 +152,30 @@ export function renderUsaTrend(
 
   if (!cfg.isGap && topic === "lang") {
     const national = aggregateNational(rows, cfg.trendValue, null);
-    const stateRows = rows
-      .filter((row) => row.state === place)
-      .sort((a, b) => Number(a.YEAR) - Number(b.YEAR));
-    window.Plotly.newPlot(
-      target,
-      [
-        {
-          type: "scatter",
-          mode: "lines+markers",
-          name: "National",
-          x: national.map((row) => row.year),
-          y: national.map((row) => row.value),
-          line: { color: "#116466" }
-        },
-        {
-          type: "scatter",
-          mode: "lines+markers",
-          name: place,
-          x: stateRows.map((row) => row.YEAR),
-          y: stateRows.map((row) => row[cfg.trendValue]),
-          line: { color: "#c44536" }
-        }
-      ],
-      trendLayout(`${cfg.title} over time`, "%"),
-      { responsive: true }
-    );
+    const traces: Array<Record<string, unknown>> = [
+      {
+        type: "scatter",
+        mode: "lines+markers",
+        name: "National",
+        x: national.map((row) => row.year),
+        y: national.map((row) => row.value),
+        line: { color: colors.lineColor, width: 2 }
+      }
+    ];
+    places.forEach((place, i) => {
+      const stateRows = rows
+        .filter((row) => row.state === place)
+        .sort((a, b) => Number(a.YEAR) - Number(b.YEAR));
+      traces.push({
+        type: "scatter",
+        mode: "lines+markers",
+        name: place,
+        x: stateRows.map((row) => row.YEAR),
+        y: stateRows.map((row) => row[cfg.trendValue]),
+        line: { dash: "dot", color: palette[i % palette.length], width: 2 }
+      });
+    });
+    window.Plotly.newPlot(target, traces, trendLayout(`${cfg.title} over time`, "%"), { responsive: true });
   } else {
     const national = aggregateNational(rows, cfg.trendValue, "nativity_group");
     const traces: Array<Record<string, unknown>> = ["Foreign-born", "US-born"].map((group, index) => {
@@ -148,21 +186,24 @@ export function renderUsaTrend(
         name: `National ${group}`,
         x: groupRows.map((row) => row.year),
         y: groupRows.map((row) => row.value),
-        line: { color: index === 0 ? "#116466" : "#6f7f8f" }
+        line: { color: index === 0 ? colors.accent : colors.lineColor, width: 2 }
       };
     });
-    const stateRows = rows
-      .filter((row) => row.state === place)
-      .sort((a, b) => Number(a.YEAR) - Number(b.YEAR));
-    ["Foreign-born", "US-born"].forEach((group, index) => {
-      const groupRows = stateRows.filter((row) => row.nativity_group === group);
-      traces.push({
-        type: "scatter",
-        mode: "lines",
-        name: `${place} ${group}`,
-        x: groupRows.map((row) => row.YEAR),
-        y: groupRows.map((row) => row[cfg.trendValue]),
-        line: { dash: "dot", color: index === 0 ? "#c44536" : "#9a8c70" }
+
+    places.forEach((place, i) => {
+      const stateRows = rows
+        .filter((row) => row.state === place)
+        .sort((a, b) => Number(a.YEAR) - Number(b.YEAR));
+      ["Foreign-born", "US-born"].forEach((group, gIdx) => {
+        const groupRows = stateRows.filter((row) => row.nativity_group === group);
+        traces.push({
+          type: "scatter",
+          mode: "lines",
+          name: `${place} ${group}`,
+          x: groupRows.map((row) => row.YEAR),
+          y: groupRows.map((row) => row[cfg.trendValue]),
+          line: { dash: "dot", color: palette[i % palette.length], width: gIdx === 0 ? 2 : 1.5 }
+        });
       });
     });
     window.Plotly.newPlot(target, traces, trendLayout(`${cfg.title} over time`, cfg.units), {
@@ -170,7 +211,8 @@ export function renderUsaTrend(
     });
   }
 
-  return { trendNote: "Solid lines show national trends; dotted lines show the selected state." };
+  const placeStr = places.length ? places.join(", ") : "none";
+  return { trendNote: `Solid lines show national trends; dotted lines show ${placeStr}.` };
 }
 
 export function renderUsaBreakdown(
@@ -179,11 +221,17 @@ export function renderUsaBreakdown(
   data: LoadedData,
   topic: string,
   period: string,
-  place: string
+  places: string[],
+  isDark: boolean
 ): { breakdownNote: string } {
+  const colors = themeColors(isDark);
+  const palette = isDark ? PLACE_COLORS_DARK : PLACE_COLORS;
+  const primaryPlace = places[0] || "";
+
   if (topic === "health") {
+    // For health, show first selected place's citizenship breakdown
     const rows = data.usa.healthCitPeriod
-      .filter((row) => row.period === period && row.state === place)
+      .filter((row) => row.period === period && row.state === primaryPlace)
       .sort((a, b) => (b.uninsured_rate_pct as number) - (a.uninsured_rate_pct as number));
     window.Plotly.newPlot(
       target,
@@ -192,17 +240,24 @@ export function renderUsaBreakdown(
           type: "bar",
           x: rows.map((row) => row.citizenship_group),
           y: rows.map((row) => row.uninsured_rate_pct),
-          marker: { color: "#c44536" },
+          marker: { color: palette[0] },
           hovertemplate: "%{x}<br>Uninsured: %{y:.1f}%<extra></extra>"
         }
       ],
       {
-        title: `Healthcare access by citizenship - ${place}, ${period}`,
-        yaxis: { title: "% uninsured" },
-        xaxis: { title: "" },
+        title: { text: `Healthcare access by citizenship - ${primaryPlace}, ${period}`, font: { color: colors.textColor } },
+        yaxis: { 
+          title: { text: "% uninsured", font: { color: colors.textColor } }, 
+          tickfont: { color: colors.textColor },
+          gridcolor: colors.gridColor
+        },
+        xaxis: { 
+          title: "", 
+          tickfont: { color: colors.textColor } 
+        },
         margin: { l: 60, r: 20, t: 45, b: 120 },
-        paper_bgcolor: "white",
-        plot_bgcolor: "white"
+        paper_bgcolor: colors.paperBg,
+        plot_bgcolor: colors.plotBg
       },
       { responsive: true }
     );
@@ -211,60 +266,88 @@ export function renderUsaBreakdown(
     };
   }
 
-  const row = data.usa[cfg.mapKey].find((item) => item.period === period && item.state === place);
-  if (!row) {
-    blankPlot(target, "Selected state detail", "No detail data available.");
-    return { breakdownNote: "" };
-  }
-
+  // For gap/rate topics: show grouped bars for each selected place
   if (cfg.isGap) {
+    const traces: Array<Record<string, unknown>> = [];
+    places.forEach((place, i) => {
+      const row = data.usa[cfg.mapKey].find((item) => item.period === period && item.state === place);
+      if (!row) return;
+      traces.push({
+        type: "bar",
+        name: place,
+        x: ["Foreign-born", "US-born"],
+        y: [row[cfg.foreign as string], row[cfg.us as string]],
+        marker: { color: palette[i % palette.length] },
+        hovertemplate: `<b>${place}</b> %{x}<br>%{y:.1f}<extra></extra>`
+      });
+    });
+
+    if (!traces.length) {
+      blankPlot(target, "Selected state detail", "No detail data available.");
+      return { breakdownNote: "" };
+    }
+
     window.Plotly.newPlot(
       target,
-      [
-        {
-          type: "bar",
-          x: ["Foreign-born", "US-born"],
-          y: [row[cfg.foreign as string], row[cfg.us as string]],
-          marker: { color: ["#116466", "#6f7f8f"] },
-          hovertemplate: "%{x}<br>%{y:.1f}<extra></extra>"
-        }
-      ],
+      traces,
       {
-        title: `${cfg.title} components - ${place}, ${period}`,
-        yaxis: { title: cfg.units.replace("percentage points", "%") },
-        xaxis: { title: "" },
+        title: { text: `${cfg.title} components - ${period}`, font: { color: colors.textColor } },
+        yaxis: { 
+          title: { text: cfg.units.replace("percentage points", "%"), font: { color: colors.textColor } }, 
+          tickfont: { color: colors.textColor },
+          gridcolor: colors.gridColor
+        },
+        xaxis: { title: "", tickfont: { color: colors.textColor } },
+        barmode: "group",
         margin: { l: 60, r: 20, t: 45, b: 60 },
-        paper_bgcolor: "white",
-        plot_bgcolor: "white"
+        paper_bgcolor: colors.paperBg,
+        plot_bgcolor: colors.plotBg,
+        legend: { orientation: "h", y: -0.15, font: { color: colors.textColor } }
       },
       { responsive: true }
     );
     return { breakdownNote: "The gap is foreign-born rate minus US-born rate." };
   }
 
+  // Non-gap: compare selected places vs national
   const national = aggregateNational(
     data.usa[cfg.mapKey].filter((item) => item.period === period),
     cfg.value,
     null
   )[0];
+
+  const xLabels = [...places, "National"];
+  const yValues = places.map(place => {
+    const row = data.usa[cfg.mapKey].find((item) => item.period === period && item.state === place);
+    return row ? row[cfg.value] : null;
+  });
+  yValues.push(national ? national.value : null);
+
+  const barCols = places.map((_, i) => palette[i % palette.length]);
+  barCols.push(colors.lineColor);
+
   window.Plotly.newPlot(
     target,
     [
       {
         type: "bar",
-        x: [place, "National"],
-        y: [row[cfg.value], national ? national.value : null],
-        marker: { color: ["#116466", "#6f7f8f"] },
+        x: xLabels,
+        y: yValues,
+        marker: { color: barCols },
         hovertemplate: "%{x}<br>%{y:.1f}%<extra></extra>"
       }
     ],
     {
-      title: `${cfg.title} detail - ${place}, ${period}`,
-      yaxis: { title: "%" },
-      xaxis: { title: "" },
+      title: { text: `${cfg.title} detail - ${period}`, font: { color: colors.textColor } },
+      yaxis: { 
+        title: { text: "%", font: { color: colors.textColor } }, 
+        tickfont: { color: colors.textColor },
+        gridcolor: colors.gridColor
+      },
+      xaxis: { title: "", tickfont: { color: colors.textColor } },
       margin: { l: 60, r: 20, t: 45, b: 60 },
-      paper_bgcolor: "white",
-      plot_bgcolor: "white"
+      paper_bgcolor: colors.paperBg,
+      plot_bgcolor: colors.plotBg
     },
     { responsive: true }
   );
