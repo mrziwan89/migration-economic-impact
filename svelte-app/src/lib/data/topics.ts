@@ -89,8 +89,8 @@ export const USA_TOPICS: Record<string, UsaTopic> = {
 
 export const EUROSTAT_TOPICS: Record<string, EurostatTopic> = {
   brain_waste_gap: {
-    label: "Highly educated employment gap",
-    title: "Highly educated employment gap",
+    label: "Brainwaste",
+    title: "Brainwaste Gap",
     source: "outcomes",
     metricKey: "brain_waste",
     value: "gap_extra_eu_vs_native_pp",
@@ -117,8 +117,8 @@ export const EUROSTAT_TOPICS: Record<string, EurostatTopic> = {
     note: "Extra-EU migrants minus native-born residents. Positive gaps mean extra-EU migrants are more often in temporary contracts."
   },
   poverty_gap: {
-    label: "Poverty risk gap",
-    title: "Poverty risk gap",
+    label: "Poverty-risk",
+    title: "Poverty-risk Gap",
     source: "outcomes",
     metricKey: "poverty",
     value: "gap_extra_eu_vs_native_pp",
@@ -127,38 +127,12 @@ export const EUROSTAT_TOPICS: Record<string, EurostatTopic> = {
     isGap: true,
     rankDirection: "descending",
     reversescale: true,
-    periods: ["Latest available", "2014-2019", "2008-2013", "1995-2007"],
-    note: "Extra-EU migrants minus native-born residents. Poverty visual rows are capped at 2014 because later rows in this processed file mix rates and counts."
-  },
-  incarceration_ratio: {
-    label: "Foreign prison representation",
-    title: "Foreign prison representation",
-    source: "outcomes",
-    metricKey: "incarceration",
-    value: "ratio_foreign_vs_native",
-    units: "ratio",
-    componentUnit: "%",
-    isGap: false,
-    rankDirection: "descending",
-    colorscale: "YlOrRd",
-    periods: ["Latest available", "2020-2024", "2014-2019", "2008-2013"],
-    note: "Foreign-to-national prison-population representation ratio. Values above 1 mean foreign citizens are over-represented in the prison-population count."
-  },
-  foreign_gap: {
-    label: "Foreign-country employment gap",
-    title: "Foreign-country employment gap",
-    source: "employment",
-    usesDemographicFilters: true,
-    kind: "gap",
-    comparisonGroup: "foreign_country",
-    value: "employment_rate_gap_pp",
-    units: "percentage points",
-    periods: ["2014-2019", "2020-2024"],
-    note: "Employment rate of foreign-country citizens minus reporting-country citizens in the same country."
+    periods: ["Latest available", "2020-2024", "2014-2019", "2008-2013", "1995-2007"],
+    note: "Extra-EU migrants minus native-born residents. Data from EU-SILC (2003-2014) and ilc_li32 (2021-2025); 2015-2020 gap not available."
   },
   non_eu_gap: {
-    label: "Non-EU employment gap",
-    title: "Non-EU employment gap",
+    label: "Employment gap",
+    title: "Employment gap",
     source: "employment",
     usesDemographicFilters: true,
     kind: "gap",
@@ -167,29 +141,5 @@ export const EUROSTAT_TOPICS: Record<string, EurostatTopic> = {
     units: "percentage points",
     periods: ["2014-2019", "2020-2024"],
     note: "Employment rate of non-EU27 citizens minus reporting-country citizens."
-  },
-  eu_mobile_gap: {
-    label: "EU-mobile employment gap",
-    title: "EU-mobile employment gap",
-    source: "employment",
-    usesDemographicFilters: true,
-    kind: "gap",
-    comparisonGroup: "eu_mobile",
-    value: "employment_rate_gap_pp",
-    units: "percentage points",
-    periods: ["2014-2019", "2020-2024"],
-    note: "Employment rate of EU27 citizens living outside their reporting country minus reporting-country citizens."
-  },
-  foreign_rate: {
-    label: "Foreign-country employment rate",
-    title: "Foreign-country employment rate",
-    source: "employment",
-    usesDemographicFilters: true,
-    kind: "rate",
-    citizenGroup: "foreign_country",
-    value: "employment_rate_pct",
-    units: "%",
-    periods: ["2014-2019", "2020-2024"],
-    note: "Eurostat LFS employment rate for foreign-country citizens."
   }
 };

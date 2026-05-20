@@ -1,7 +1,7 @@
+import { aggregateNational, blankPlot, mapScale, trendLayout, themeColors, PLACE_COLORS, PLACE_COLORS_DARK, addSelectedYearIndicator } from "./common";
 import type { CsvRow } from "../data/csv";
 import type { LoadedData } from "../data/load";
 import type { UsaTopic } from "../data/topics";
-import { aggregateNational, blankPlot, mapScale, trendLayout, themeColors, PLACE_COLORS, PLACE_COLORS_DARK } from "./common";
 
 export function renderUsaMap(
   target: HTMLElement,
@@ -71,7 +71,8 @@ export function renderUsaRanking(
   cfg: UsaTopic,
   rows: CsvRow[],
   selectedPlaces: Set<string>,
-  isDark: boolean
+  isDark: boolean,
+  onSelect?: (place: string) => void
 ): void {
   const allRows = rows
     .filter((row) => row[cfg.value] != null)
@@ -131,6 +132,20 @@ export function renderUsaRanking(
     },
     { responsive: true }
   );
+
+  if (onSelect) {
+    if ((target as any).removeAllListeners) {
+      (target as any).removeAllListeners("plotly_click");
+    }
+    (target as any).on("plotly_click", (eventData: any) => {
+      if (eventData?.points?.[0]) {
+        const clickedState = eventData.points[0].y;
+        if (clickedState) {
+          onSelect(clickedState);
+        }
+      }
+    });
+  }
 }
 
 export function renderUsaTrend(
@@ -139,7 +154,9 @@ export function renderUsaTrend(
   data: LoadedData,
   topic: string,
   places: string[],
-  isDark: boolean
+  selectedYear: number,
+  isDark: boolean,
+  onYearSelect?: (year: number) => void
 ): { trendNote: string } {
   const rows = data.usa[cfg.trendKey];
   const colors = themeColors(isDark);
@@ -175,7 +192,23 @@ export function renderUsaTrend(
         line: { dash: "dot", color: palette[i % palette.length], width: 2 }
       });
     });
-    window.Plotly.newPlot(target, traces, trendLayout(`${cfg.title} over time`, "%"), { responsive: true });
+    const layout = trendLayout(`${cfg.title} over time`, "%");
+    addSelectedYearIndicator(layout, selectedYear, isDark, colors);
+    window.Plotly.newPlot(target, traces, layout, { responsive: true });
+    
+    if (onYearSelect) {
+      if ((target as any).removeAllListeners) {
+        (target as any).removeAllListeners("plotly_click");
+      }
+      (target as any).on("plotly_click", (eventData: any) => {
+        if (eventData?.points?.[0]) {
+          const clickedX = Number(eventData.points[0].x);
+          if (Number.isFinite(clickedX)) {
+            onYearSelect(clickedX);
+          }
+        }
+      });
+    }
   } else {
     const national = aggregateNational(rows, cfg.trendValue, "nativity_group");
     const traces: Array<Record<string, unknown>> = ["Foreign-born", "US-born"].map((group, index) => {
@@ -206,9 +239,25 @@ export function renderUsaTrend(
         });
       });
     });
-    window.Plotly.newPlot(target, traces, trendLayout(`${cfg.title} over time`, cfg.units), {
+    const layout = trendLayout(`${cfg.title} over time`, cfg.units);
+    addSelectedYearIndicator(layout, selectedYear, isDark, colors);
+    window.Plotly.newPlot(target, traces, layout, {
       responsive: true
     });
+    
+    if (onYearSelect) {
+      if ((target as any).removeAllListeners) {
+        (target as any).removeAllListeners("plotly_click");
+      }
+      (target as any).on("plotly_click", (eventData: any) => {
+        if (eventData?.points?.[0]) {
+          const clickedX = Number(eventData.points[0].x);
+          if (Number.isFinite(clickedX)) {
+            onYearSelect(clickedX);
+          }
+        }
+      });
+    }
   }
 
   const placeStr = places.length ? places.join(", ") : "none";

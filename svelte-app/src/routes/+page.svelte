@@ -38,6 +38,14 @@
   // Year slider state
   let selectedYear = $state(2024);
 
+  function togglePlace(place: string) {
+    if (places.includes(place)) {
+      places = places.filter((p) => p !== place);
+    } else if (places.length < MAX_SELECTIONS) {
+      places = [...places, place];
+    }
+  }
+
   let rankingEl = $state<HTMLDivElement | null>(null);
   let trendEl = $state<HTMLDivElement | null>(null);
   let breakdownEl = $state<HTMLDivElement | null>(null);
@@ -201,15 +209,17 @@
     const _age = age;
     const _places = places;
     const _dark = isDark;
+    const _selectedYear = selectedYear; // MUST be tracked so year indicator updates on slider drag
+    const _radarEl = radarEl; // Read to track mounting of the radar container
     
     // Explicitly track that the chart containers are loaded
-    if (rankingEl && trendEl && breakdownEl && radarEl) {
+    if (rankingEl && trendEl && breakdownEl) {
       tick().then(renderAll);
     }
   });
 
   function renderAll(): void {
-    if (!data || !rankingEl || !trendEl || !breakdownEl || !radarEl) return;
+    if (!data || !rankingEl || !trendEl || !breakdownEl) return;
     if (!window.Plotly) return;
     const currentCfg = region === "usa" ? USA_TOPICS[topic] : (region === "eurostat" ? EUROSTAT_TOPICS[topic] : null);
     if (!currentCfg) return;
@@ -220,10 +230,17 @@
       const usaCfg = currentCfg as UsaTopic;
       const mapRows = data.usa[usaCfg.mapKey].filter((row) => row.period === period && row.state);
       
-      renderUsaRanking(rankingEl, usaCfg, mapRows, selectedPlaces, isDark);
-      const trendResult = renderUsaTrend(trendEl, usaCfg, data, topic, places, isDark);
+      renderUsaRanking(rankingEl, usaCfg, mapRows, selectedPlaces, isDark, (place) => {
+        togglePlace(place);
+      });
+      const trendResult = renderUsaTrend(trendEl, usaCfg, data, topic, places, selectedYear, isDark, (year) => {
+        selectedYear = year;
+      });
       const breakdownResult = renderUsaBreakdown(breakdownEl, usaCfg, data, topic, period, places, isDark);
-      renderUsaRadar(radarEl, data, period, places, isDark);
+      
+      if (radarEl && places.length > 0) {
+        renderUsaRadar(radarEl, data, period, places, isDark);
+      }
       
       rankingNote = usaCfg.isGap
         ? "Ranking uses the selected period. Positive gaps mean the foreign-born rate is higher than the US-born rate."
@@ -235,10 +252,23 @@
       const euCfg = currentCfg as EurostatTopic;
       if (euCfg.source === "outcomes") {
         const rows = eurostatOutcomeRowsForSelection(euCfg, data, period);
-        renderEurostatOutcomeRanking(rankingEl, euCfg, rows, selectedPlaces, isDark);
-        const trendResult = renderEurostatOutcomeTrend(trendEl, euCfg, data, places, isDark);
+        renderEurostatOutcomeRanking(rankingEl, euCfg, rows, selectedPlaces, isDark, (place) => {
+          togglePlace(place);
+        });
+        const trendResult = renderEurostatOutcomeTrend(
+          trendEl,
+          euCfg,
+          data,
+          places,
+          selectedYear,
+          isDark,
+          (year) => { selectedYear = year; }
+        );
         const breakdownResult = renderEurostatOutcomeBreakdown(breakdownEl, euCfg, data, period, places, isDark);
-        renderEurostatRadar(radarEl, data, period, places, isDark);
+        
+        if (radarEl && places.length > 0) {
+          renderEurostatRadar(radarEl, data, period, places, isDark);
+        }
         
         rankingNote = euCfg.rankDirection === "ascending"
           ? "Ranking highlights the most negative gaps first."
@@ -248,10 +278,25 @@
         radarNote = "Comparative profile across all outcome research pillars (normalized 0-100 scale).";
       } else {
         const rows = eurostatRowsForMap(euCfg, data, period, sex, age);
-        renderEurostatEmploymentRanking(rankingEl, euCfg, rows, selectedPlaces, isDark);
-        const trendResult = renderEurostatEmploymentTrend(trendEl, euCfg, data, places, sex, age, isDark);
+        renderEurostatEmploymentRanking(rankingEl, euCfg, rows, selectedPlaces, isDark, (place) => {
+          togglePlace(place);
+        });
+        const trendResult = renderEurostatEmploymentTrend(
+          trendEl,
+          euCfg,
+          data,
+          places,
+          sex,
+          age,
+          selectedYear,
+          isDark,
+          (year) => { selectedYear = year; }
+        );
         const breakdownResult = renderEurostatEmploymentBreakdown(breakdownEl, data, period, places, sex, age, isDark);
-        renderEurostatRadar(radarEl, data, period, places, isDark);
+        
+        if (radarEl && places.length > 0) {
+          renderEurostatRadar(radarEl, data, period, places, isDark);
+        }
         
         rankingNote = euCfg.kind === "gap"
           ? "Ranking uses the selected period, age, and sex. Positive gaps mean the comparison group has a higher employment rate."
@@ -481,7 +526,11 @@
 
       <div class="editorial-charts-grid">
         <!-- Chart 0: Radar Plot (Comparative Profile) -->
-        <PlotCard variant="radar" note={radarNote} full bind:el={radarEl} />
+        {#if places.length > 0}
+          <div transition:slide={{ duration: 250 }} class="full">
+            <PlotCard variant="radar" note={radarNote} full bind:el={radarEl} />
+          </div>
+        {/if}
 
         <!-- Chart A: Horizontal Ranking of States/Countries -->
         <PlotCard variant="ranking" note={rankingNote} bind:el={rankingEl} />

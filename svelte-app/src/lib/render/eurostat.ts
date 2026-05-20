@@ -2,7 +2,9 @@ import type { CsvRow } from "../data/csv";
 import type { LoadedData } from "../data/load";
 import type { EurostatTopic } from "../data/topics";
 import { EU_TREND_GROUPS } from "../data/lookups";
-import { blankPlot, mapScale, trendLayout, themeColors, PLACE_COLORS, PLACE_COLORS_DARK } from "./common";
+import { blankPlot, mapScale, trendLayout, themeColors, PLACE_COLORS, PLACE_COLORS_DARK, addSelectedYearIndicator } from "./common";
+import { CITIZEN_ORDER } from "../data/lookups";
+const CITIZEN_ORDER_LOCAL = CITIZEN_ORDER;
 
 export function eurostatRowsForMap(
   cfg: EurostatTopic,
@@ -143,7 +145,8 @@ export function renderEurostatOutcomeRanking(
   cfg: EurostatTopic,
   rows: CsvRow[],
   selectedPlaces: Set<string>,
-  isDark: boolean
+  isDark: boolean,
+  onSelect?: (place: string) => void
 ): void {
   const allRows = rows
     .filter((row) => row[cfg.value] != null)
@@ -211,6 +214,21 @@ export function renderEurostatOutcomeRanking(
     },
     { responsive: true }
   );
+
+  if (onSelect) {
+    if ((target as any).removeAllListeners) {
+      (target as any).removeAllListeners("plotly_click");
+    }
+    (target as any).on("plotly_click", (eventData: any) => {
+      if (eventData?.points?.[0]) {
+        const clickedPlaceName = eventData.points[0].y;
+        const found = rankingRows.find(row => row.country === clickedPlaceName);
+        if (found && found.country_key) {
+          onSelect(found.country_key as string);
+        }
+      }
+    });
+  }
 }
 
 export function renderEurostatOutcomeTrend(
@@ -218,30 +236,45 @@ export function renderEurostatOutcomeTrend(
   cfg: EurostatTopic,
   data: LoadedData,
   places: string[],
-  isDark: boolean
+  selectedYear: number,
+  isDark: boolean,
+  onYearSelect?: (year: number) => void
 ): { trendNote: string } {
   const palette = isDark ? PLACE_COLORS_DARK : PLACE_COLORS;
   const colors = themeColors(isDark);
   const traces: Array<Record<string, unknown>> = [];
 
-  // EU aggregate as reference
-  const euRows = data.eurostat.outcomeYear
-    .filter((row) => row.country_code === "EU" && row.metric_key === cfg.metricKey && row[cfg.value] != null)
-    .sort((a, b) => Number(a.YEAR) - Number(b.YEAR));
-  
-  if (euRows.length) {
+  // Compute cross-country unweighted average per year as a reference line.
+  // (No EU aggregate rows exist in the year-level data — all rows are country-level.)
+  const allCountryRows = data.eurostat.outcomeYear.filter(
+    (row) => row.metric_key === cfg.metricKey && row[cfg.value] != null && Number(row.is_aggregate) === 0
+  );
+  const yearMap = new Map<number, { sum: number; count: number }>();
+  allCountryRows.forEach((row) => {
+    const yr = Number(row.YEAR);
+    const val = Number(row[cfg.value]);
+    if (!Number.isFinite(yr) || !Number.isFinite(val)) return;
+    const existing = yearMap.get(yr) || { sum: 0, count: 0 };
+    existing.sum += val;
+    existing.count += 1;
+    yearMap.set(yr, existing);
+  });
+  const avgRows = Array.from(yearMap.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([yr, { sum, count }]) => ({ year: yr, avg: sum / count }));
+  if (avgRows.length) {
     traces.push({
       type: "scatter",
-      mode: "lines+markers",
-      name: "EU aggregate",
-      x: euRows.map((row) => row.YEAR),
-      y: euRows.map((row) => row[cfg.value]),
-      line: { color: colors.lineColor, width: 2 }
+      mode: "lines",
+      name: "EU avg (unweighted)",
+      x: avgRows.map((r) => r.year),
+      y: avgRows.map((r) => r.avg),
+      line: { color: colors.lineColor, width: 1.5, dash: "dot" },
+      opacity: 0.7
     });
   }
 
   places.forEach((place, i) => {
-    if (place === "EU") return; // already shown
     const selectedRows = data.eurostat.outcomeYear
       .filter((row) => row.country_key === place && row.metric_key === cfg.metricKey && row[cfg.value] != null)
       .sort((a, b) => Number(a.YEAR) - Number(b.YEAR));
@@ -249,7 +282,7 @@ export function renderEurostatOutcomeTrend(
       traces.push({
         type: "scatter",
         mode: "lines+markers",
-        name: selectedRows[0].country,
+        name: String(selectedRows[0].country),
         x: selectedRows.map((row) => row.YEAR),
         y: selectedRows.map((row) => row[cfg.value]),
         line: { color: palette[i % palette.length], width: 2 }
@@ -260,12 +293,32 @@ export function renderEurostatOutcomeTrend(
   if (!traces.length) {
     blankPlot(target, `${cfg.title} over time`, "No trend data available for the selected country.");
   } else {
-    window.Plotly.newPlot(target, traces, trendLayout(`${cfg.title} over time`, cfg.units), {
+    const layout = trendLayout(`${cfg.title} over time`, cfg.units);
+    addSelectedYearIndicator(layout, selectedYear, isDark, colors);
+    window.Plotly.newPlot(target, traces, layout, {
       responsive: true
     });
+
+    if (onYearSelect) {
+      if ((target as any).removeAllListeners) {
+        (target as any).removeAllListeners("plotly_click");
+      }
+      (target as any).on("plotly_click", (eventData: any) => {
+        if (eventData?.points?.[0]) {
+          const clickedX = Number(eventData.points[0].x);
+          if (Number.isFinite(clickedX)) {
+            onYearSelect(clickedX);
+          }
+        }
+      });
+    }
   }
-  return { trendNote: "Trend uses annual rows from the normalized EU outcomes file." };
+  return {
+    trendNote:
+      "Dotted line = unweighted EU country average. Some small countries have fewer data years — their lines end where data coverage stops."
+  };
 }
+
 
 export function renderEurostatOutcomeBreakdown(
   target: HTMLElement,
@@ -412,7 +465,8 @@ export function renderEurostatEmploymentRanking(
   cfg: EurostatTopic,
   rows: CsvRow[],
   selectedPlaces: Set<string>,
-  isDark: boolean
+  isDark: boolean,
+  onSelect?: (place: string) => void
 ): void {
   const allRows = rows
     .filter((row) => row[cfg.value] != null)
@@ -469,6 +523,21 @@ export function renderEurostatEmploymentRanking(
     },
     { responsive: true }
   );
+
+  if (onSelect) {
+    if ((target as any).removeAllListeners) {
+      (target as any).removeAllListeners("plotly_click");
+    }
+    (target as any).on("plotly_click", (eventData: any) => {
+      if (eventData?.points?.[0]) {
+        const clickedPlaceName = eventData.points[0].y;
+        const found = rankingRows.find(row => row.country === clickedPlaceName);
+        if (found && found.country_key) {
+          onSelect(found.country_key as string);
+        }
+      }
+    });
+  }
 }
 
 export function renderEurostatEmploymentTrend(
@@ -478,7 +547,9 @@ export function renderEurostatEmploymentTrend(
   places: string[],
   sex: string,
   age: string,
-  isDark: boolean
+  selectedYear: number,
+  isDark: boolean,
+  onYearSelect?: (year: number) => void
 ): { trendNote: string } {
   const palette = isDark ? PLACE_COLORS_DARK : PLACE_COLORS;
   const colors = themeColors(isDark);
@@ -557,9 +628,25 @@ export function renderEurostatEmploymentTrend(
   if (!traces.length) {
     blankPlot(target, `${cfg.title} over time`, "No trend data available for the selected country.");
   } else {
-    window.Plotly.newPlot(target, traces, trendLayout(`${cfg.title} over time`, cfg.units), {
+    const layout = trendLayout(`${cfg.title} over time`, cfg.units);
+    addSelectedYearIndicator(layout, selectedYear, isDark, colors);
+    window.Plotly.newPlot(target, traces, layout, {
       responsive: true
     });
+
+    if (onYearSelect) {
+      if ((target as any).removeAllListeners) {
+        (target as any).removeAllListeners("plotly_click");
+      }
+      (target as any).on("plotly_click", (eventData: any) => {
+        if (eventData?.points?.[0]) {
+          const clickedX = Number(eventData.points[0].x);
+          if (Number.isFinite(clickedX)) {
+            onYearSelect(clickedX);
+          }
+        }
+      });
+    }
   }
 
   return {

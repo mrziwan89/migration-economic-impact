@@ -11,7 +11,15 @@ import type { LoadedData } from "../data/load";
 
 declare const Plotly: any;
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+function hexToRgba(hex: string, opacity: number): string {
+  const cleanHex = hex.replace("#", "");
+  const r = parseInt(cleanHex.slice(0, 2), 16);
+  const g = parseInt(cleanHex.slice(2, 4), 16);
+  const b = parseInt(cleanHex.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+}
+
+// ─── types ────────────────────────────────────────────────────────────────────
 
 interface RadarAxis {
   key: string;        // topic key (e.g., "brain", "inc")
@@ -116,7 +124,7 @@ export function renderUsaRadar(
       r,
       theta,
       fill: "toself",
-      fillcolor: colors[i % colors.length].replace(")", ", 0.15)").replace("rgb", "rgba"),
+      fillcolor: hexToRgba(colors[i % colors.length], 0.3),
       line: { color: colors[i % colors.length], width: 2 },
       marker: { size: 5, color: colors[i % colors.length] },
       name: place,
@@ -131,20 +139,20 @@ export function renderUsaRadar(
         visible: true,
         range: [0, 105],
         showticklabels: true,
-        tickfont: { size: 9, color: tc.muted },
-        gridcolor: tc.line,
-        linecolor: tc.line,
+        tickfont: { size: 9, color: tc.textColor },
+        gridcolor: tc.lineColor,
+        linecolor: tc.lineColor,
       },
       angularaxis: {
-        tickfont: { size: 11, color: tc.text, family: "'Inter', sans-serif" },
-        gridcolor: tc.line,
-        linecolor: tc.line,
+        tickfont: { size: 11, color: tc.textColor, family: "'Inter', sans-serif" },
+        gridcolor: tc.lineColor,
+        linecolor: tc.lineColor,
       },
       bgcolor: "rgba(0,0,0,0)",
     },
     showlegend: places.length > 1,
     legend: {
-      font: { size: 11, color: tc.text, family: "'Inter', sans-serif" },
+      font: { size: 11, color: tc.textColor, family: "'Inter', sans-serif" },
       bgcolor: "rgba(0,0,0,0)",
       x: 1.05,
       y: 1,
@@ -167,7 +175,6 @@ const EUROSTAT_OUTCOME_AXES: RadarAxis[] = [
   { key: "brain_waste_gap",       label: "Brain Waste Gap",     unit: "pp" },
   { key: "temporary_contract_gap", label: "Temp Contract Gap",  unit: "pp" },
   { key: "poverty_gap",           label: "Poverty Risk Gap",    unit: "pp" },
-  { key: "incarceration_ratio",   label: "Prison Ratio",        unit: "×" },
 ];
 
 function getEurostatOutcomeValue(
@@ -276,7 +283,7 @@ export function renderEurostatRadar(
       r,
       theta,
       fill: "toself",
-      fillcolor: colors[i % colors.length].replace(")", ", 0.15)").replace("rgb", "rgba"),
+      fillcolor: hexToRgba(colors[i % colors.length], 0.3),
       line: { color: colors[i % colors.length], width: 2 },
       marker: { size: 5, color: colors[i % colors.length] },
       name: displayName as string,
@@ -291,20 +298,20 @@ export function renderEurostatRadar(
         visible: true,
         range: [0, 105],
         showticklabels: true,
-        tickfont: { size: 9, color: tc.muted },
-        gridcolor: tc.line,
-        linecolor: tc.line,
+        tickfont: { size: 9, color: tc.textColor },
+        gridcolor: tc.lineColor,
+        linecolor: tc.lineColor,
       },
       angularaxis: {
-        tickfont: { size: 11, color: tc.text, family: "'Inter', sans-serif" },
-        gridcolor: tc.line,
-        linecolor: tc.line,
+        tickfont: { size: 11, color: tc.textColor, family: "'Inter', sans-serif" },
+        gridcolor: tc.lineColor,
+        linecolor: tc.lineColor,
       },
       bgcolor: "rgba(0,0,0,0)",
     },
     showlegend: places.length > 1,
     legend: {
-      font: { size: 11, color: tc.text, family: "'Inter', sans-serif" },
+      font: { size: 11, color: tc.textColor, family: "'Inter', sans-serif" },
       bgcolor: "rgba(0,0,0,0)",
       x: 1.05,
       y: 1,

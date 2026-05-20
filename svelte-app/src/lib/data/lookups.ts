@@ -42,12 +42,34 @@ export const PERIODS = {
   eurostat: ["2014-2019", "2020-2024"]
 } as const;
 
+// All known period buckets for mapping year → period (sorted earliest-first)
+export const PERIOD_BUCKETS = [
+  { label: "1995-2007", start: 1995, end: 2007 },
+  { label: "2008-2013", start: 2008, end: 2013 },
+  { label: "2014-2019", start: 2014, end: 2019 },
+  { label: "2020-2024", start: 2020, end: 2024 }
+];
+
+/** Map a single year to its parent period bucket. Falls back to latest. */
+export function yearToPeriod(year: number, allowedPeriods: readonly string[]): string {
+  for (const bucket of PERIOD_BUCKETS) {
+    if (year >= bucket.start && year <= bucket.end && allowedPeriods.includes(bucket.label)) {
+      return bucket.label;
+    }
+  }
+  // If "Latest available" is an option, use it as final fallback
+  if (allowedPeriods.includes("Latest available")) return "Latest available";
+  return allowedPeriods[allowedPeriods.length - 1] || "2020-2024";
+}
+
+export const MAX_SELECTIONS = 3;
+
 export const DEFAULTS = {
-  usa: { topic: "brain", period: "2020-2024", place: "CA" },
+  usa: { topic: "brain", period: "2020-2024", places: ["CA"] as readonly string[] },
   eurostat: {
     topic: "brain_waste_gap",
     period: "Latest available",
-    place: "DEU",
+    places: ["DEU"] as readonly string[],
     sex: "Total",
     age: "From 15 to 64 years"
   }

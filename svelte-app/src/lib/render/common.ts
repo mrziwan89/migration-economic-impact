@@ -150,3 +150,50 @@ export function prioritize(values: string[], preferred: string[]): string[] {
     ...values.filter((value) => !preferredSet.has(value))
   ];
 }
+
+export function addSelectedYearIndicator(
+  layout: Record<string, any>,
+  selectedYear: number,
+  isDark: boolean,
+  colors: ThemeColors
+): void {
+  if (!selectedYear) return;
+
+  layout.shapes = [
+    ...(layout.shapes || []),
+    {
+      type: "line",
+      x0: selectedYear,
+      x1: selectedYear,
+      y0: 0,
+      y1: 1,
+      yref: "paper",
+      line: {
+        color: colors.accent,
+        width: 2,
+        dash: "dashdot"
+      }
+    }
+  ];
+
+  layout.annotations = [
+    ...(layout.annotations || []),
+    {
+      x: selectedYear,
+      y: 1.02,
+      yref: "paper",
+      text: `<b>${selectedYear}</b>`,
+      showarrow: false,
+      font: {
+        family: "'Inter', sans-serif",
+        size: 11,
+        color: isDark ? "#ffffff" : "#0f172a"
+      },
+      bgcolor: colors.paperBg,
+      bordercolor: colors.accent,
+      borderwidth: 1.5,
+      borderpad: 4,
+      yshift: 10
+    }
+  ];
+}
