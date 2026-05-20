@@ -354,7 +354,11 @@ const USA_TOPICS = {
     foreign: "Foreign-born",
     us: "US-born",
     isGap: true,
-    note: "Highly educated employed adults aged 25-64 whose occupation is outside selected high-skill SOC major groups."
+    gapLabels: {
+      top: "Higher foreign-born brain waste",
+      bottom: "Higher US-born brain waste"
+    },
+    note: "Percentage of highly educated employed adults aged 25-64 whose occupation is outside selected high-skill SOC major groups."
   },
   inc: {
     label: "Incarceration proxy gap",
@@ -367,6 +371,10 @@ const USA_TOPICS = {
     foreign: "Foreign-born",
     us: "US-born",
     isGap: true,
+    gapLabels: {
+      top: "Higher foreign-born incarceration",
+      bottom: "Higher US-born incarceration"
+    },
     note: "Men aged 18-40. ACS institutionalization is used as an incarceration proxy, not a direct crime rate."
   },
   health: {
@@ -380,7 +388,11 @@ const USA_TOPICS = {
     foreign: "Foreign-born",
     us: "US-born",
     isGap: true,
-    note: "Descriptive comparison of health-insurance access by nativity group."
+    gapLabels: {
+      top: "Higher foreign-born uninsured",
+      bottom: "Higher US-born uninsured"
+    },
+    note: "Percentage of uninsured residents aged 18-64."
   },
   lang: {
     label: "Limited English proficiency",
@@ -391,24 +403,29 @@ const USA_TOPICS = {
     value: "limited_english_rate_pct",
     trendValue: "limited_english_rate_pct",
     isGap: false,
-    note: "Foreign-born residents aged 5+ who speak English less than very well."
+    colorscale: "YlOrRd_r",
+    note: "Percentage of Foreign-born residents aged 5+ who speak English less than very well."
   }
 };
 
 const EUROSTAT_TOPICS = {
   brain_waste_gap: {
-    label: "Highly educated employment gap",
-    title: "Highly educated employment gap",
+    label: "brain waste gap",
+    title: "brain waste gap",
     source: "outcomes",
     metricKey: "brain_waste",
     value: "gap_extra_eu_vs_native_pp",
     units: "percentage points",
     componentUnit: "%",
     isGap: true,
-    rankDirection: "ascending",
-    reversescale: false,
+    rankDirection: "descending",
+    reversescale: true,
+    gapLabels: {
+      top: "Higher native-born brain waste",
+      bottom: "Higher non-EU-born brain waste"
+    },
     periods: ["Latest available", "2020-2024", "2014-2019", "2008-2013", "1995-2007"],
-    note: "Extra-EU migrants minus native-born residents. Negative gaps mean highly educated extra-EU migrants have lower employment rates."
+    note: "Employment rate of highly educated individuals."
   },
   temporary_contract_gap: {
     label: "Temporary contract gap",
@@ -420,7 +437,11 @@ const EUROSTAT_TOPICS = {
     componentUnit: "%",
     isGap: true,
     rankDirection: "descending",
-    reversescale: true,
+    reversescale: false,
+    gapLabels: {
+      top: "Higher non-EU-born temporary contracts",
+      bottom: "Higher native-born temporary contracts"
+    },
     periods: ["Latest available", "2020-2024", "2014-2019", "2008-2013", "1995-2007"],
     note: "Extra-EU migrants minus native-born residents. Positive gaps mean extra-EU migrants are more often in temporary contracts."
   },
@@ -434,7 +455,11 @@ const EUROSTAT_TOPICS = {
     componentUnit: "%",
     isGap: true,
     rankDirection: "descending",
-    reversescale: true,
+    reversescale: false,
+    gapLabels: {
+      top: "Higher non-eu-born poverty risk",
+      bottom: "Higher native-born poverty risk"
+    },
     periods: ["Latest available", "2014-2019", "2008-2013", "1995-2007"],
     note: "Extra-EU migrants minus native-born residents. Poverty visual rows are capped at 2014 because later rows in this processed file mix rates and counts."
   },
@@ -448,7 +473,7 @@ const EUROSTAT_TOPICS = {
     componentUnit: "%",
     isGap: false,
     rankDirection: "descending",
-    colorscale: "YlOrRd",
+    colorscale: "YlOrRd-r",
     periods: ["Latest available", "2020-2024", "2014-2019", "2008-2013"],
     note: "Foreign-to-national prison-population representation ratio. Values above 1 mean foreign citizens are over-represented in the prison-population count."
   },
@@ -461,6 +486,11 @@ const EUROSTAT_TOPICS = {
     comparisonGroup: "foreign_country",
     value: "employment_rate_gap_pp",
     units: "percentage points",
+    isGap: true,
+    gapLabels: {
+      top: "Higher foreign-country employment gap",
+      bottom: "Higher reporting-country employment gap"
+    },
     periods: ["2014-2019", "2020-2024"],
     note: "Employment rate of foreign-country citizens minus reporting-country citizens in the same country."
   },
@@ -473,6 +503,11 @@ const EUROSTAT_TOPICS = {
     comparisonGroup: "non_eu",
     value: "employment_rate_gap_pp",
     units: "percentage points",
+    isGap: true,
+    gapLabels: {
+      top: "Higher non-EU citizen employment gap",
+      bottom: "Higher reporting-country employment gap"
+    },
     periods: ["2014-2019", "2020-2024"],
     note: "Employment rate of non-EU27 citizens minus reporting-country citizens."
   },
@@ -957,6 +992,14 @@ function mapScale(values, isGap) {
   return {zmin: 0, zmax: Math.max(...clean)};
 }
 
+function getUsaGapLabels(cfg) {
+  return cfg.gapLabels || {top: "Higher value", bottom: "Lower value"};
+}
+
+function getEUGapLabels(cfg) {
+  return cfg.gapLabels || {top: "Higher value", bottom: "Lower value"};
+}
+
 function getColorScaleArray(name) {
   const scales = {
     Blues: ["#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#08519c", "#08306b"],
@@ -965,6 +1008,24 @@ function getColorScaleArray(name) {
     YlGnBu: ["#ffffcc", "#c7e9b4", "#7fcdbb", "#41b6c4", "#1d91c0", "#225ea8", "#253494", "#081d58"]
   };
   return scales[name] || scales.Blues;
+}
+
+function getEurostatDisplayUnits(cfg) {
+  if (!cfg) return "";
+  if (cfg.metricKey === "incarceration") {
+    return "ratio";
+  }
+  if (cfg.units === "percentage points") {
+    return "pp";
+  }
+  return cfg.units || "";
+}
+
+function visualEurostatValue(cfg, value) {
+  if (value == null || !Number.isFinite(value)) {
+    return null;
+  }
+  return value;
 }
 
 function getValueColor(value, scale, colorscale = "Blues") {
@@ -976,6 +1037,18 @@ function getValueColor(value, scale, colorscale = "Blues") {
   const normalized = Math.max(0, Math.min(1, (value - scale.zmin) / span));
   const index = Math.min(stops.length - 1, Math.floor(normalized * (stops.length - 1)));
   return stops[index];
+}
+
+function getColorbarTickvals(scale) {
+  if (!scale) return [];
+  const zmin = Number(scale.zmin || 0);
+  const zmax = Number(scale.zmax || 0);
+  if (zmax === zmin) {
+    // ensure two distinct tick positions so ticktext is rendered
+    const eps = Math.abs(zmax) < 1 ? 1e-6 : Math.abs(zmax) * 1e-6;
+    return [zmax, zmin + eps];
+  }
+  return [zmax, zmin];
 }
 
 function getStableScale(cfg, region) {
@@ -1054,13 +1127,18 @@ function renderUsa(cfg) {
       z: values,
       text: mapRows.map(row => row.state_name),
       customdata: mapRows.map(row => [row.foreign, row.us]),
-      colorscale: cfg.isGap ? "RdBu" : "Blues",
-      reversescale: cfg.isGap,
+      colorscale: cfg.colorscale || (cfg.isGap ? "RdBu" : "Blues"),
+      reversescale: cfg.isGap ? false : false,
       zmin: scale.zmin,
       zmax: scale.zmax,
       opacity: selectedPlaces.size ? 0.32 : 1,
       marker: {line: {color: "white", width: 0.7}},
-      colorbar: {title: cfg.units},
+      colorbar: cfg.isGap ? {
+        title: cfg.units,
+        tickvals: getColorbarTickvals(scale),
+        ticktext: [getUsaGapLabels(cfg).top, getUsaGapLabels(cfg).bottom],
+        len: 0.75
+      } : {title: cfg.units},
       hovertemplate: cfg.isGap
         ? "<b>%{text}</b><br>Gap: %{z:.1f} " + cfg.units + "<br>Foreign-born: %{customdata[0]:.1f}<br>US-born: %{customdata[1]:.1f}<extra></extra>"
         : "<b>%{text}</b><br>Rate: %{z:.1f}%<extra></extra>"
@@ -1075,8 +1153,8 @@ function renderUsa(cfg) {
         z: selectedRows.map(row => row.value),
         text: selectedRows.map(row => row.state_name),
         customdata: selectedRows.map(row => [row.foreign, row.us]),
-        colorscale: cfg.isGap ? "RdBu" : "Blues",
-        reversescale: cfg.isGap,
+        colorscale: cfg.colorscale || (cfg.isGap ? "RdBu" : "Blues"),
+        reversescale: cfg.isGap ? false : false,
         zmin: scale.zmin,
         zmax: scale.zmax,
         opacity: 1,
@@ -1408,7 +1486,12 @@ function renderEurostatOutcome(cfg) {
       zmin: scale.zmin,
       zmax: scale.zmax,
       marker: {line: {color: "white", width: 0.6}, opacity: opacities},
-      colorbar: {title: getEurostatDisplayUnits(cfg)},
+      colorbar: cfg.isGap ? {
+        title: getEurostatDisplayUnits(cfg),
+        tickvals: getColorbarTickvals(scale),
+        ticktext: [getEUGapLabels(cfg).top, getEUGapLabels(cfg).bottom],
+        len: 0.75
+      } : {title: getEurostatDisplayUnits(cfg)},
       hovertemplate
     }], {
       title: `${cfg.title} - ${periodOrYear}`,
@@ -1760,7 +1843,18 @@ function renderRadarComparison(region, cfg, selectedPlaces, selectedYear) {
 }
 
 function renderEurostatTrend(cfg, selectedPlaces, selectedYear) {
-  const places = selectedPlaces.length ? selectedPlaces : [placeSelect.options[0] && placeSelect.options[0].value].filter(Boolean);
+  // Normalize selectedPlaces to an array: accept Array, Set, or single-string
+  let selPlaces;
+  if (Array.isArray(selectedPlaces)) {
+    selPlaces = selectedPlaces;
+  } else if (selectedPlaces instanceof Set) {
+    selPlaces = Array.from(selectedPlaces);
+  } else if (selectedPlaces == null) {
+    selPlaces = [];
+  } else {
+    selPlaces = [selectedPlaces];
+  }
+  const places = selPlaces.length ? selPlaces : [placeSelect.options[0] && placeSelect.options[0].value].filter(Boolean);
   const sex = sexSelect.value;
   const age = ageSelect.value;
   let traces = [];
