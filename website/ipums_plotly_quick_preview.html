@@ -363,11 +363,11 @@ const USA_TOPICS = {
   inc: {
     label: "Incarceration proxy gap",
     title: "Incarceration proxy gap",
-    units: "per 100,000",
+    units: "percentage points",
     mapKey: "incGapPeriod",
     trendKey: "incYear",
-    value: "incarceration_rate_per_100k_gap_foreign_minus_us",
-    trendValue: "incarceration_rate_per_100k",
+    value: "incarceration_rate_pct_gap_foreign_minus_us",
+    trendValue: "incarceration_rate_pct",
     foreign: "Foreign-born",
     us: "US-born",
     isGap: true,
@@ -464,18 +464,18 @@ const EUROSTAT_TOPICS = {
     note: "Extra-EU migrants minus native-born residents. Poverty visual rows are capped at 2014 because later rows in this processed file mix rates and counts."
   },
   incarceration_ratio: {
-    label: "Foreign prison representation",
-    title: "Foreign prison representation",
+    label: "Foreign-citizen prison share",
+    title: "Foreign-citizen prison share",
     source: "outcomes",
     metricKey: "incarceration",
-    value: "ratio_foreign_vs_native",
-    units: "ratio",
+    value: "extra_eu_migrant_value",
+    units: "%",
     componentUnit: "%",
     isGap: false,
     rankDirection: "descending",
     colorscale: "YlOrRd-r",
     periods: ["Latest available", "2020-2024", "2014-2019", "2008-2013"],
-    note: "Foreign-to-national prison-population representation ratio. Values above 1 mean foreign citizens are over-represented in the prison-population count."
+    note: "Foreign citizens as a share of the prison population. Higher values mean a larger fraction of prisoners are foreign citizens."
   },
   foreign_gap: {
     label: "Foreign-country employment gap",
@@ -764,13 +764,22 @@ function getSelectedYear() {
 }
 
 function availableYearsForTopic(region, cfg) {
-  const rows = region === "usa"
-    ? DATA.usa[cfg.trendKey]
-    : cfg.source === "outcomes"
-      ? DATA.eurostat.outcomeYear
-      : cfg.kind === "gap"
-        ? DATA.eurostat.gapYear
-        : DATA.eurostat.countryYear;
+  let rows;
+  if (region === "usa") {
+    rows = DATA.usa[cfg.trendKey].filter(row => row[cfg.trendValue] != null);
+  } else if (cfg.source === "outcomes") {
+    rows = DATA.eurostat.outcomeYear.filter(row =>
+      row.metric_key === cfg.metricKey && row[cfg.value] != null && row.is_aggregate === 0
+    );
+  } else if (cfg.kind === "gap") {
+    rows = DATA.eurostat.gapYear.filter(row =>
+      row.comparison_group === cfg.comparisonGroup && row[cfg.value] != null && row.is_aggregate === 0
+    );
+  } else {
+    rows = DATA.eurostat.countryYear.filter(row =>
+      row.citizen_group === cfg.citizenGroup && row[cfg.value] != null && row.is_aggregate === 0
+    );
+  }
 
   const years = Array.from(new Set(rows.map(row => row.YEAR).filter(value => value != null))).map(Number);
   years.sort((a, b) => a - b);
@@ -1012,12 +1021,6 @@ function getColorScaleArray(name) {
 
 function getEurostatDisplayUnits(cfg) {
   if (!cfg) return "";
-  if (cfg.metricKey === "incarceration") {
-    return "ratio";
-  }
-  if (cfg.units === "percentage points") {
-    return "pp";
-  }
   return cfg.units || "";
 }
 
@@ -1140,7 +1143,7 @@ function renderUsa(cfg) {
         len: 0.75
       } : {title: cfg.units},
       hovertemplate: cfg.isGap
-        ? "<b>%{text}</b><br>Gap: %{z:.1f} " + cfg.units + "<br>Foreign-born: %{customdata[0]:.1f}<br>US-born: %{customdata[1]:.1f}<extra></extra>"
+        ? "<b>%{text}</b><br>Gap: %{z:.1f} " + cfg.units + "<br>Foreign-born: %{customdata[0]:.1f}%<br>US-born: %{customdata[1]:.1f}%<extra></extra>"
         : "<b>%{text}</b><br>Rate: %{z:.1f}%<extra></extra>"
     };
     const traces = [baseTrace];
@@ -1161,7 +1164,7 @@ function renderUsa(cfg) {
         marker: {line: {color: "white", width: 1}},
         showscale: false,
         hovertemplate: cfg.isGap
-          ? "<b>%{text}</b><br>Gap: %{z:.1f} " + cfg.units + "<br>Foreign-born: %{customdata[0]:.1f}<br>US-born: %{customdata[1]:.1f}<extra></extra>"
+          ? "<b>%{text}</b><br>Gap: %{z:.1f} " + cfg.units + "<br>Foreign-born: %{customdata[0]:.1f}%<br>US-born: %{customdata[1]:.1f}%<extra></extra>"
           : "<b>%{text}</b><br>Rate: %{z:.1f}%<extra></extra>"
       });
     }
@@ -1468,8 +1471,8 @@ function renderEurostatOutcome(cfg) {
   const scale = getStableScale(cfg, "eurostat");
   const opacities = rows.map(row => selectedPlaces.size === 0 || selectedPlaces.has(row.country_key) ? 1 : 0.32);
   const hovertemplate = cfg.metricKey === "incarceration"
-    ? "<b>%{text}</b><br>Ratio: %{z:.2f}x<br>Foreign-citizen share: %{customdata[2]:.1f}%<br>National-citizen share: %{customdata[0]:.1f}%<br>Coverage: %{customdata[3]}<extra></extra>"
-    : "<b>%{text}</b><br>Gap: %{z:.1f} pp<br>Extra-EU migrant: %{customdata[2]:.1f}%<br>EU migrant: %{customdata[1]:.1f}%<br>Native-born: %{customdata[0]:.1f}%<br>Coverage: %{customdata[3]}<extra></extra>";
+    ? "<b>%{text}</b><br>Foreign-citizen share: %{z:.1f}%<br>National-citizen share: %{customdata[0]:.1f}%<br>Coverage: %{customdata[3]}<extra></extra>"
+    : "<b>%{text}</b><br>Gap: %{z:.1f} percentage points<br>Extra-EU migrant: %{customdata[2]:.1f}%<br>EU migrant: %{customdata[1]:.1f}%<br>Native-born: %{customdata[0]:.1f}%<br>Coverage: %{customdata[3]}<extra></extra>";
 
   if (!rows.length) {
     blankPlot("map", cfg.title, "No country data available for this selection.");
@@ -1633,7 +1636,7 @@ function renderEurostatOutcomeBreakdown(cfg, place, selectedYear) {
   }, {responsive: true});
 
   document.getElementById("breakdownNote").textContent = cfg.metricKey === "incarceration"
-    ? "Components show prison-population shares; the map and ranking use the foreign-to-national representation ratio."
+    ? "Components show prison-population shares; the map and ranking use the foreign-citizen share of the prison population."
     : "Components show cohort rates; the map and ranking use extra-EU migrant value minus native-born value.";
 }
 
@@ -1675,7 +1678,7 @@ function renderEurostat(cfg) {
       marker: {line: {color: "white", width: 0.6}},
       colorbar: {title: cfg.units},
       hovertemplate: cfg.kind === "gap"
-        ? "<b>%{text}</b><br>Gap: %{z:.1f} pp<br>%{customdata[2]}: %{customdata[0]:.1f}%<br>Reporting-country citizens: %{customdata[1]:.1f}%<extra></extra>"
+        ? "<b>%{text}</b><br>Gap: %{z:.1f} percentage points<br>%{customdata[2]}: %{customdata[0]:.1f}%<br>Reporting-country citizens: %{customdata[1]:.1f}%<extra></extra>"
         : "<b>%{text}</b><br>%{customdata[0]}: %{z:.1f}%<extra></extra>"
     };
     const traces = [baseTrace];
@@ -1698,8 +1701,8 @@ function renderEurostat(cfg) {
         marker: {line: {color: "white", width: 1}},
         showscale: false,
         hovertemplate: cfg.kind === "gap"
-          ? "<b>%{text}</b><br>Gap: %{z:.1f} pp<br>%{customdata[2]}: %{customdata[0]:.1f}%<br>Reporting-country citizens: %{customdata[1]:.1f}%<extra></extra>"
-          : "<b>%{text}</b><br>%{customdata[0]}: %{z:.1f} pp<extra></extra>"
+          ? "<b>%{text}</b><br>Gap: %{z:.1f} percentage points<br>%{customdata[2]}: %{customdata[0]:.1f}%<br>Reporting-country citizens: %{customdata[1]:.1f}%<extra></extra>"
+          : "<b>%{text}</b><br>%{customdata[0]}: %{z:.1f}%<extra></extra>"
       });
     }
 
